@@ -24,9 +24,13 @@ model User {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  memberships   Membership[]
+  accounts    Account[]
+  sessions    Session[]
+  memberships Membership[]
+
+  // Audit trail
+  createdStudents          Student[]            @relation("StudentCreatedBy")
+  createdSessions          TherapySession[]     @relation("SessionCreatedBy")
 }
 
 model Account {
@@ -78,8 +82,11 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships Membership[]
-  students    Student[]
+  memberships      Membership[]
+  students         Student[]
+  behaviors        Behavior[]
+  behaviorMethods  BehaviorMethod[]
+  therapySessions  TherapySession[]
 }
 
 model Membership {
@@ -97,20 +104,314 @@ model Membership {
 }
 
 // ============================================================
-// DOMAIN: ABA STUDENTS, SESSIONS, MEASUREMENTS
-// (Stub for Fase 1 — full schema will be added next phase)
+// ENUMS — domain
+// ============================================================
+
+enum MeasurementMethodType {
+  FREQUENCY
+  DURATION
+  LATENCY
+  INTENSITY
+  TEMPORAL_SAMPLING
+  PERCENTAGE_OPPORTUNITY
+  EVENT_SAMPLING
+  ANECDOTAL
+  ABC
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionType {
+  SCHEDULED
+  IMMEDIATE
+}
+
+enum PeriodicType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum SamplingType {
+  PARTIAL
+  WHOLE
+  MOMENTARY
+}
+
+enum OpportunityEndCondition {
+  MANUAL
+  TIME_LIMIT
+  OPPORTUNITY_LIMIT
+}
+
+// ============================================================
+// CORE DOMAIN
 // ============================================================
 
 model Student {
   id             String   @id @default(cuid())
   organizationId String
   name           String
-  color          String?  // hex color for UI
+  color          String?  // hex
+  birthDate      DateTime?
+  notes          String?
+  createdById    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   deletedAt      DateTime?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy        User?            @relation("StudentCreatedBy", fields: [createdById], references: [id])
+  behaviorMethods  BehaviorMethod[]
+  therapySessions  TherapySession[]
+  abcRecords       ABCRecord[]
+  anecdotalRecords AnecdotalRecord[]
+  eventSamplings   EventSampling[]
 
   @@index([organizationId])
+  @@index([organizationId, deletedAt])
+}
+
+/// Conducta reutilizable (catálogo). Independiente del método de medición.
+model Behavior {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  behaviorMethods BehaviorMethod[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+/// BehaviorMethod = plantilla de medición de una conducta para un estudiante con un método específico.
+/// `config` es JSONB polimórfico — su shape depende de methodType (validado por Zod en la app).
+model BehaviorMethod {
+  id             String                @id @default(cuid())
+  organizationId String
+  studentId      String
+  behaviorId     String?
+  behaviorName   String                // snapshot for display even if behavior is deleted
+  methodType     MeasurementMethodType
+  description    String?
+  functionTypes  Json?                 // array of strings (operant function categories)
+  config         Json                  // method-specific configuration (validated by Zod)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  deletedAt      DateTime?
+
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  student           Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  behavior          Behavior?           @relation(fields: [behaviorId], references: [id], onDelete: SetNull)
+  results           MeasurementResult[]
+  progress          MeasurementProgress[]
+  opportunityResults     OpportunityResult[]
+  temporalSamplingResults TemporalSamplingResult[]
+
+  @@index([organizationId])
+  @@index([studentId])
+  @@index([methodType])
+}
+
+model TherapySession {
+  id             String        @id @default(cuid())
+  organizationId String
+  studentId      String
+  createdById    String?
+  title          String
+  description    String?
+  status         SessionStatus @default(PENDING)
+  sessionType    SessionType   @default(SCHEDULED)
+  sessionDate    DateTime
+  durationMin    Int?
+  isPeriodic     Boolean       @default(false)
+  periodicType   PeriodicType  @default(NONE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation("SessionCreatedBy", fields: [createdById], references: [id])
+
+  results                MeasurementResult[]
+  progress               MeasurementProgress[]
+  opportunityResults     OpportunityResult[]
+  temporalSamplingResults TemporalSamplingResult[]
+
+  @@index([organizationId])
+  @@index([studentId])
+  @@index([sessionDate])
+  @@index([status])
+}
+
+/// Resultado genérico de una medición (frequency/duration/intensity/latency).
+/// Para Opportunity y TemporalSampling existen tablas dedicadas con más detalle.
+model MeasurementResult {
+  id               String                @id @default(cuid())
+  organizationId   String
+  behaviorMethodId String
+  sessionId        String
+  methodType       MeasurementMethodType
+  behaviorName     String
+  resultValue      String                // numeric or stringified — interpreted per methodType
+  resultUnit       String?               // "per_min", "seconds", "scale_1_10", "%", etc.
+  measurementDate  DateTime              @default(now())
+  sessionDurationSec Int?
+  rawData          Json?                 // method-specific raw arrays (timestamps, durations, etc.)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  behaviorMethod BehaviorMethod  @relation(fields: [behaviorMethodId], references: [id], onDelete: Cascade)
+  session        TherapySession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([behaviorMethodId])
+  @@index([sessionId])
+  @@index([methodType])
+}
+
+model OpportunityResult {
+  id                      String                  @id @default(cuid())
+  organizationId          String
+  behaviorMethodId        String
+  sessionId               String
+  studentId               String
+  totalOpportunities      Int
+  successfulOpportunities Int
+  successPercentage       Float
+  opportunityDetails      Json                    // array of { timestamp, status, note? }
+  endCondition            OpportunityEndCondition @default(MANUAL)
+  measurementDate         DateTime                @default(now())
+  createdAt               DateTime                @default(now())
+
+  behaviorMethod BehaviorMethod  @relation(fields: [behaviorMethodId], references: [id], onDelete: Cascade)
+  session        TherapySession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([studentId])
+}
+
+model TemporalSamplingResult {
+  id                       String       @id @default(cuid())
+  organizationId           String
+  behaviorMethodId         String
+  sessionId                String
+  studentId                String
+  samplingType             SamplingType
+  intervalDurationSec      Int
+  totalDurationSec         Int
+  totalIntervals           Int
+  markedIntervals          Int
+  markedPercentage         Float
+  intervalDetails          Json         // array of { index, startSec, marked, note? }
+  measurementDate          DateTime     @default(now())
+  createdAt                DateTime     @default(now())
+
+  behaviorMethod BehaviorMethod  @relation(fields: [behaviorMethodId], references: [id], onDelete: Cascade)
+  session        TherapySession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([studentId])
+}
+
+model ABCRecord {
+  id                       String   @id @default(cuid())
+  organizationId           String
+  studentId                String
+  occurredAt               DateTime
+  durationSec              Int?
+  location                 String?
+  peoplePresent            String?
+  antecedentType           String?
+  antecedentDescription    String?
+  behaviorDescription      String
+  behaviorDurationSec      Int?
+  behaviorIntensity        Int?
+  behaviorTopography       String?
+  consequenceType          String?
+  consequenceDescription   String?
+  whatObtained             String?
+  whatAvoided              String?
+  functionAnalysis         String?
+  notes                    String?
+  createdAt                DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([studentId])
+  @@index([occurredAt])
+}
+
+model AnecdotalRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  studentId      String
+  recordDate     DateTime
+  recordTime     String?  // HH:mm — for ergonomy, separate from date
+  title          String
+  description    String
+  context        String?
+  category       String?
+  observations   String?
+  createdAt      DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([studentId])
+  @@index([recordDate])
+}
+
+model EventSampling {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  studentId             String
+  behaviorName          String
+  sessionDurationMin    Int
+  intensityScale        Int?
+  dataSaveType          String?  // INDIVIDUAL | AVERAGE | BOTH
+  data                  Json     // method-specific event records
+  measurementDate       DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([studentId])
+}
+
+/// Estado parcial de una medición en curso. Unifica las 10 *ProgressEntity de Android
+/// en una sola tabla con methodType + data JSONB. Permite reanudar sesiones interrumpidas
+/// y soportar el sistema paralelo (varias mediciones simultáneas).
+model MeasurementProgress {
+  id               String                @id @default(cuid())
+  organizationId   String
+  behaviorMethodId String
+  sessionId        String
+  methodType       MeasurementMethodType
+  data             Json                  // method-specific snapshot
+  startedAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  completedAt      DateTime?
+
+  behaviorMethod BehaviorMethod  @relation(fields: [behaviorMethodId], references: [id], onDelete: Cascade)
+  session        TherapySession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([behaviorMethodId, sessionId])
+  @@index([organizationId])
+  @@index([sessionId])
+  @@index([completedAt])
 }
