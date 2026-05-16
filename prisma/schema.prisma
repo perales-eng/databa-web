@@ -1,0 +1,116 @@
+// datABA web — Prisma schema
+// Multi-tenant from day 1: every domain entity belongs to an Organization.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH + MULTI-TENANT BASE
+// ============================================================
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  THERAPIST
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  students    Student[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(THERAPIST)
+  createdAt      DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+// ============================================================
+// DOMAIN: ABA STUDENTS, SESSIONS, MEASUREMENTS
+// (Stub for Fase 1 — full schema will be added next phase)
+// ============================================================
+
+model Student {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  color          String?  // hex color for UI
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}

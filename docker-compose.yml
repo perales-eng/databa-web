@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: databa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: databa
+      POSTGRES_PASSWORD: databa_dev_password
+      POSTGRES_DB: databa_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - databa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U databa -d databa_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  databa_pgdata:
