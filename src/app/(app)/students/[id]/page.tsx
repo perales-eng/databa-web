@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeleteStudentButton } from "./delete-button";
+import { DeleteBehaviorMethodButton } from "./behaviors/delete-button";
 
 const statusVariant = (s: string) =>
   s === "COMPLETED" ? "success" : s === "IN_PROGRESS" ? "warning" : s === "CANCELLED" ? "destructive" : "secondary";
@@ -111,9 +112,16 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Métodos de medición</CardTitle>
-            <CardDescription>Configuración de conductas a medir (Fase 3)</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Métodos de medición</CardTitle>
+              <CardDescription>Conductas a medir para este estudiante</CardDescription>
+            </div>
+            <Link href={`/students/${student.id}/behaviors/new`}>
+              <Button size="sm">
+                <Plus className="h-4 w-4" /> Nuevo
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
             {student.behaviorMethods.length === 0 ? (
@@ -121,10 +129,18 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             ) : (
               <ul className="divide-y">
                 {student.behaviorMethods.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between gap-3 py-3">
+                  <li key={m.id} className="flex items-center justify-between gap-2 py-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{m.behaviorName}</p>
                       <p className="text-xs text-muted-foreground">{methodLabel(m.methodType)}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Link href={`/students/${student.id}/behaviors/${m.id}/edit`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <DeleteBehaviorMethodButton id={m.id} studentId={student.id} behaviorName={m.behaviorName} />
                     </div>
                   </li>
                 ))}

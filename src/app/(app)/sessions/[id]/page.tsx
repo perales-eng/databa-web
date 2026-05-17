@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Pencil, Trash2, Calendar, Clock, User } from "lucide-react";
+import { ChevronLeft, Pencil, Calendar, Clock, User, Play } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { requireOrganization } from "@/lib/auth-helpers";
@@ -15,11 +15,56 @@ const statusVariant = (s: string) =>
 const statusLabel = (s: string) =>
   ({ PENDING: "Pendiente", IN_PROGRESS: "En curso", COMPLETED: "Completada", CANCELLED: "Cancelada" })[s] ?? s;
 
+const METHOD_LABELS: Record<string, string> = {
+  FREQUENCY: "Frecuencia",
+  DURATION: "Duración",
+  LATENCY: "Latencia",
+  INTENSITY: "Intensidad",
+  PERCENTAGE_OPPORTUNITY: "Oportunidades",
+  TEMPORAL_SAMPLING: "Muestreo temporal",
+  EVENT_SAMPLING: "Event sampling",
+  ANECDOTAL: "Anecdótico",
+  ABC: "ABC",
+};
+
+function formatResultValue(methodType: string, value: string, unit: string | null, rawData: unknown) {
+  const raw = rawData as Record<string, unknown> | null;
+  switch (methodType) {
+    case "FREQUENCY": {
+      const count = Number(value);
+      const rate = raw?.rate as number | undefined;
+      return `${count} ocurrencias${rate !== undefined ? ` · ${rate.toFixed(2)}/min` : ""}`;
+    }
+    case "DURATION": {
+      const stats = raw?.stats as Record<string, number> | undefined;
+      if (stats) return `${stats.count} ep. · prom ${stats.average.toFixed(1)}s · total ${stats.total}s`;
+      return `${value}s`;
+    }
+    case "LATENCY": {
+      const stats = raw?.stats as Record<string, number> | undefined;
+      if (stats) return `${stats.count} medic. · prom ${stats.average.toFixed(1)}s`;
+      return `${value}s`;
+    }
+    case "INTENSITY": {
+      const stats = raw?.stats as Record<string, number> | undefined;
+      if (stats) return `${stats.count} registros · prom ${stats.average.toFixed(1)}`;
+      return value;
+    }
+    default:
+      return value;
+  }
+}
+
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { organization } = await requireOrganization();
   const { id } = await params;
   const session = await getSession(organization.id, id);
   if (!session) notFound();
+
+  const totalMeasurements =
+    session._count.results +
+    session.opportunityResults.length +
+    session.temporalSamplingResults.length;
 
   return (
     <div>
@@ -56,6 +101,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex gap-2">
+          {session.status !== "COMPLETED" && session.status !== "CANCELLED" ? (
+            <Link href={`/sessions/${session.id}/measure`}>
+              <Button>
+                <Play className="h-4 w-4" /> Iniciar medición
+              </Button>
+            </Link>
+          ) : null}
           <Link href={`/sessions/${session.id}/edit`}>
             <Button variant="outline">
               <Pencil className="h-4 w-4" /> Editar
@@ -78,20 +130,109 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       <Card>
         <CardHeader>
-          <CardTitle>Mediciones</CardTitle>
+          <CardTitle>
+            Mediciones
+            {totalMeasurements > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({totalMeasurements} registros)
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {session._count.results === 0 ? (
+          {totalMeasurements === 0 ? (
             <div className="flex flex-col items-center py-8 text-center">
               <p className="text-sm text-muted-foreground">Sin mediciones registradas todavía.</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                La ejecución de mediciones se habilita en Fase 3.
-              </p>
+              {session.status !== "COMPLETED" && session.status !== "CANCELLED" && (
+                <Link href={`/sessions/${session.id}/measure`} className="mt-2 text-sm text-primary underline">
+                  Iniciar medición
+                </Link>
+              )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              {session._count.results} mediciones registradas (la vista detallada llega en Fase 5).
-            </p>
+            <div className="space-y-4">
+              {session.results.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Resultados generales
+                  </h3>
+                  <ul className="divide-y">
+                    {session.results.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{r.behaviorName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatResultValue(r.methodType, r.resultValue, r.resultUnit, r.rawData)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge variant="secondary">{METHOD_LABELS[r.methodType] ?? r.methodType}</Badge>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(r.measurementDate, "HH:mm")}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {session.opportunityResults.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Oportunidades
+                  </h3>
+                  <ul className="divide-y">
+                    {session.opportunityResults.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">
+                            {r.successfulOpportunities}/{r.totalOpportunities} correctas
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.successPercentage.toFixed(0)}% · {r.endCondition}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge variant="secondary">Oportunidades</Badge>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(r.measurementDate, "HH:mm")}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {session.temporalSamplingResults.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Muestreo temporal
+                  </h3>
+                  <ul className="divide-y">
+                    {session.temporalSamplingResults.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">
+                            {r.markedIntervals}/{r.totalIntervals} intervalos marcados
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.markedPercentage.toFixed(0)}% · {r.samplingType} · {r.intervalDurationSec}s/intervalo
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge variant="secondary">Muestreo</Badge>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(r.measurementDate, "HH:mm")}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

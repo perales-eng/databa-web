@@ -73,7 +73,23 @@ export async function getSession(organizationId: string, id: string) {
   return db.therapySession.findFirst({
     where: { id, organizationId, deletedAt: null },
     include: {
-      student: true,
+      student: {
+        include: {
+          behaviorMethods: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      },
+      results: {
+        orderBy: { measurementDate: "asc" },
+      },
+      opportunityResults: {
+        orderBy: { measurementDate: "asc" },
+      },
+      temporalSamplingResults: {
+        orderBy: { measurementDate: "asc" },
+      },
       _count: { select: { results: true } },
     },
   });

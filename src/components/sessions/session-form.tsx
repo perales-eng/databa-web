@@ -55,9 +55,11 @@ export function SessionForm({ studentId, initial }: Props) {
     router.refresh();
   }
 
-  const defaultDate = initial?.sessionDate
-    ? localDateTime(initial.sessionDate)
-    : localDateTime(new Date(Date.now() + 60 * 60 * 1000));
+  const [defaultDate] = React.useState<string>(() =>
+    initial?.sessionDate
+      ? localDateTime(initial.sessionDate)
+      : localDateTime(new Date(Date.now() + 60 * 60 * 1000)),
+  );
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">

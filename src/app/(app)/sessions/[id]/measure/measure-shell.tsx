@@ -1,0 +1,285 @@
+"use client";
+
+import * as React from "react";
+import { CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FrequencyPad } from "@/components/measure/frequency-pad";
+import { DurationPad } from "@/components/measure/duration-pad";
+import { LatencyPad } from "@/components/measure/latency-pad";
+import { IntensityPad } from "@/components/measure/intensity-pad";
+import { OpportunityPad } from "@/components/measure/opportunity-pad";
+import { TemporalSamplingPad } from "@/components/measure/temporal-sampling-pad";
+import { ABCForm } from "@/components/measure/abc-form";
+import { AnecdotalForm } from "@/components/measure/anecdotal-form";
+import { EventSamplingPad } from "@/components/measure/event-sampling-pad";
+import { completeSession } from "@/server/measurements";
+import type { MeasurementMethodType } from "@prisma/client";
+
+type BehaviorMethod = {
+  id: string;
+  behaviorName: string;
+  methodType: MeasurementMethodType;
+  description: string | null;
+  config: unknown;
+};
+
+type Props = {
+  sessionId: string;
+  studentId: string;
+  studentName: string;
+  behaviorMethods: BehaviorMethod[];
+};
+
+const METHOD_LABELS: Record<MeasurementMethodType, string> = {
+  FREQUENCY: "Frecuencia",
+  DURATION: "Duración",
+  LATENCY: "Latencia",
+  INTENSITY: "Intensidad",
+  PERCENTAGE_OPPORTUNITY: "Oportunidades",
+  TEMPORAL_SAMPLING: "Muestreo temporal",
+  EVENT_SAMPLING: "Event sampling",
+  ANECDOTAL: "Anecdótico",
+  ABC: "ABC",
+};
+
+const METHOD_COLORS: Record<MeasurementMethodType, string> = {
+  FREQUENCY: "bg-blue-500/15 text-blue-700",
+  DURATION: "bg-violet-500/15 text-violet-700",
+  LATENCY: "bg-amber-500/15 text-amber-700",
+  INTENSITY: "bg-orange-500/15 text-orange-700",
+  PERCENTAGE_OPPORTUNITY: "bg-emerald-500/15 text-emerald-700",
+  TEMPORAL_SAMPLING: "bg-teal-500/15 text-teal-700",
+  EVENT_SAMPLING: "bg-pink-500/15 text-pink-700",
+  ANECDOTAL: "bg-slate-500/15 text-slate-700",
+  ABC: "bg-red-500/15 text-red-700",
+};
+
+function MeasurePad({
+  bm,
+  sessionId,
+  studentId,
+  sessionStartMs,
+  onSaved,
+}: {
+  bm: BehaviorMethod;
+  sessionId: string;
+  studentId: string;
+  sessionStartMs: number;
+  onSaved: () => void;
+}) {
+  const cfg = bm.config as Record<string, unknown>;
+
+  switch (bm.methodType) {
+    case "FREQUENCY":
+      return (
+        <FrequencyPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          behaviorName={bm.behaviorName}
+          sessionStartMs={sessionStartMs}
+          onSaved={onSaved}
+        />
+      );
+    case "DURATION":
+      return (
+        <DurationPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          behaviorName={bm.behaviorName}
+          sessionStartMs={sessionStartMs}
+          onSaved={onSaved}
+        />
+      );
+    case "LATENCY":
+      return (
+        <LatencyPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          behaviorName={bm.behaviorName}
+          sessionStartMs={sessionStartMs}
+          onSaved={onSaved}
+        />
+      );
+    case "INTENSITY":
+      return (
+        <IntensityPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          behaviorName={bm.behaviorName}
+          sessionStartMs={sessionStartMs}
+          scaleMin={(cfg.scaleMin as number) ?? 1}
+          scaleMax={(cfg.scaleMax as number) ?? 10}
+          onSaved={onSaved}
+        />
+      );
+    case "PERCENTAGE_OPPORTUNITY":
+      return (
+        <OpportunityPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          studentId={studentId}
+          behaviorName={bm.behaviorName}
+          maxOpportunities={(cfg.maxOpportunities as number | null) ?? null}
+          opportunityDescription={(cfg.opportunityDescription as string) ?? ""}
+          correctResponseDescription={(cfg.correctResponseDescription as string) ?? ""}
+          onSaved={onSaved}
+        />
+      );
+    case "TEMPORAL_SAMPLING":
+      return (
+        <TemporalSamplingPad
+          sessionId={sessionId}
+          behaviorMethodId={bm.id}
+          studentId={studentId}
+          behaviorName={bm.behaviorName}
+          samplingType={(cfg.samplingType as "PARTIAL" | "WHOLE" | "MOMENTARY") ?? "PARTIAL"}
+          intervalDurationSec={(cfg.intervalDurationSeconds as number) ?? 10}
+          totalDurationSec={(cfg.totalDurationSeconds as number) ?? 300}
+          onSaved={onSaved}
+        />
+      );
+    case "EVENT_SAMPLING":
+      return (
+        <EventSamplingPad
+          sessionId={sessionId}
+          studentId={studentId}
+          behaviorName={bm.behaviorName}
+          sessionDurationMin={(cfg.sessionDurationMinutes as number) ?? 30}
+          intensityScale={(cfg.intensityScale as number | null) ?? null}
+          dataSaveType={(cfg.dataSaveType as string) ?? "BOTH"}
+          onSaved={onSaved}
+        />
+      );
+    case "ABC":
+      return <ABCForm sessionId={sessionId} studentId={studentId} onSaved={onSaved} />;
+    case "ANECDOTAL":
+      return <AnecdotalForm sessionId={sessionId} studentId={studentId} onSaved={onSaved} />;
+  }
+}
+
+export function MeasureShell({ sessionId, studentId, studentName, behaviorMethods }: Props) {
+  const [activeId, setActiveId] = React.useState<string | null>(
+    behaviorMethods[0]?.id ?? null,
+  );
+  const [savedCounts, setSavedCounts] = React.useState<Record<string, number>>({});
+  const [completing, setCompleting] = React.useState(false);
+  const [sessionStartMs] = React.useState<number>(() => Date.now());
+
+  const activeBm = behaviorMethods.find((bm) => bm.id === activeId);
+
+  function handleSaved() {
+    if (!activeId) return;
+    setSavedCounts((prev) => ({ ...prev, [activeId]: (prev[activeId] ?? 0) + 1 }));
+  }
+
+  async function handleComplete() {
+    setCompleting(true);
+    const result = await completeSession(sessionId);
+    setCompleting(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Sesión completada");
+    window.location.href = `/sessions/${sessionId}`;
+  }
+
+  if (behaviorMethods.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <p className="text-muted-foreground">
+          Este estudiante no tiene métodos de medición configurados.
+        </p>
+        <a href={`/students/${studentId}/behaviors/new`} className="text-sm text-primary underline">
+          Agregar método de medición
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <aside className="lg:w-64 shrink-0">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Conductas a medir</CardTitle>
+            <p className="text-xs text-muted-foreground">{studentName}</p>
+          </CardHeader>
+          <CardContent className="p-2">
+            <ul className="space-y-1">
+              {behaviorMethods.map((bm) => {
+                const count = savedCounts[bm.id] ?? 0;
+                return (
+                  <li key={bm.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveId(bm.id)}
+                      className={`flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                        bm.id === activeId
+                          ? "bg-accent text-accent-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{bm.behaviorName}</p>
+                        <p className={`mt-0.5 rounded-full px-1.5 py-0.5 text-xs inline-block ${METHOD_COLORS[bm.methodType]}`}>
+                          {METHOD_LABELS[bm.methodType]}
+                        </p>
+                      </div>
+                      {count > 0 && (
+                        <span className="ml-1 mt-0.5 shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Button
+          onClick={handleComplete}
+          disabled={completing}
+          className="mt-4 w-full"
+          variant="outline"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {completing ? "Completando…" : "Finalizar sesión"}
+        </Button>
+      </aside>
+
+      <div className="flex-1">
+        {activeBm ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle>{activeBm.behaviorName}</CardTitle>
+                <Badge className={METHOD_COLORS[activeBm.methodType]}>
+                  {METHOD_LABELS[activeBm.methodType]}
+                </Badge>
+              </div>
+              {activeBm.description && (
+                <p className="text-sm text-muted-foreground">{activeBm.description}</p>
+              )}
+            </CardHeader>
+            <CardContent>
+              <MeasurePad
+                key={activeBm.id}
+                bm={activeBm}
+                sessionId={sessionId}
+                studentId={studentId}
+                sessionStartMs={sessionStartMs}
+                onSaved={handleSaved}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
+    </div>
+  );
+}
