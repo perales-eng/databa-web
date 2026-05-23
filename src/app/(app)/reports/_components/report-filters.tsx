@@ -12,9 +12,10 @@ type Props = {
   students: Option[];
   behaviorMethods: Option[];
   csvHref: string;
+  pdfHrefBase: string;
 };
 
-export function ReportFilters({ students, behaviorMethods, csvHref }: Props) {
+export function ReportFilters({ students, behaviorMethods, csvHref, pdfHrefBase }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -23,6 +24,7 @@ export function ReportFilters({ students, behaviorMethods, csvHref }: Props) {
   const [to, setTo] = React.useState(params.get("to") ?? "");
   const [studentId, setStudentId] = React.useState(params.get("studentId") ?? "");
   const [behaviorMethodId, setBehaviorMethodId] = React.useState(params.get("behaviorMethodId") ?? "");
+  const [notes, setNotes] = React.useState("");
 
   function apply() {
     const next = new URLSearchParams(params.toString());
@@ -92,13 +94,34 @@ export function ReportFilters({ students, behaviorMethods, csvHref }: Props) {
           <Button type="button" onClick={reset} size="sm" variant="outline">Limpiar</Button>
         </div>
       </div>
-      <div className="mt-3 flex justify-end">
-        <a
-          href={csvHref}
-          className="text-xs font-medium text-primary underline-offset-2 hover:underline"
-        >
-          Descargar CSV
-        </a>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t pt-3">
+        <div className="flex-1 min-w-[240px] space-y-1">
+          <Label htmlFor="notes" className="text-xs">Notas para el PDF (opcional)</Label>
+          <Input
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Anotaciones clínicas que aparecerán al pie del PDF"
+            maxLength={500}
+          />
+        </div>
+        <div className="flex gap-3 text-xs font-medium">
+          <a href={csvHref} className="text-primary underline-offset-2 hover:underline">
+            Descargar CSV
+          </a>
+          {studentId ? (
+            <a
+              href={`${pdfHrefBase}${pdfHrefBase.includes("?") ? "&" : "?"}${notes ? `notes=${encodeURIComponent(notes)}` : ""}`}
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              Descargar PDF (estudiante)
+            </a>
+          ) : (
+            <span className="text-muted-foreground" title="Seleccioná un estudiante para habilitar PDF">
+              PDF requiere estudiante
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

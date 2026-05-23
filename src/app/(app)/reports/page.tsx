@@ -10,6 +10,7 @@ import {
   groupByMethod,
   orgKpis,
   summarizeMeasurementByMethod,
+  trendByMethodSeries,
   trendMeasurement,
   trendOpportunity,
   trendTemporal,
@@ -17,6 +18,7 @@ import {
 import { ReportFilters as Filters } from "./_components/report-filters";
 import { ReportTabs, type ReportTab } from "./_components/tabs";
 import { TrendChart } from "./_components/trend-chart";
+import { MultiTrendChart } from "./_components/multi-trend-chart";
 
 type SearchParams = {
   tab?: string;
@@ -88,6 +90,7 @@ export default async function ReportsPage({
   const csvParams = new URLSearchParams(baseParams);
   csvParams.set("tab", tab);
   const csvHref = `/reports/export.csv?${csvParams.toString()}`;
+  const pdfHrefBase = `/reports/export.pdf?${baseParams.toString()}`;
 
   return (
     <div className="space-y-6">
@@ -105,6 +108,7 @@ export default async function ReportsPage({
           label: `${b.behaviorName} · ${METHOD_LABELS[b.methodType] ?? b.methodType}`,
         }))}
         csvHref={csvHref}
+        pdfHrefBase={pdfHrefBase}
       />
 
       <ReportTabs current={tab} params={baseParams} />
@@ -231,7 +235,7 @@ function StudentTab({
               </div>
             </CardHeader>
             <CardContent>
-              <TrendChart data={trendMeasurement(m)} variant="line" height={160} />
+              <MultiTrendChart series={trendByMethodSeries(m)} height={180} />
             </CardContent>
           </Card>
         );

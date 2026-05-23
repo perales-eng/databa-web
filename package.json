@@ -19,6 +19,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^6.19.3",
+    "@react-pdf/renderer": "^4.5.1",
     "@tanstack/react-query": "^5.100.10",
     "@tanstack/react-query-devtools": "^5.100.10",
     "@types/react-big-calendar": "^1.16.3",

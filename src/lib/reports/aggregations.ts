@@ -142,6 +142,34 @@ export type TrendPoint = { date: string; value: number; count: number };
  * INTENSITY. Para OPPORTUNITY/TEMPORAL_SAMPLING usar `trendOpportunity` /
  * `trendTemporal`.
  */
+/**
+ * Series por método: un array `{ key, label, points }` por behaviorMethodId.
+ * Útil para overlays comparativos.
+ */
+export type MultiTrendSeries = {
+  key: string;
+  label: string;
+  methodType: MeasurementMethodType;
+  points: TrendPoint[];
+};
+
+export function trendByMethodSeries(rows: MeasurementRow[] & { behaviorName?: string }[]): MultiTrendSeries[];
+export function trendByMethodSeries(rows: MeasurementRow[]): MultiTrendSeries[];
+export function trendByMethodSeries(
+  rows: (MeasurementRow & { behaviorName?: string })[],
+): MultiTrendSeries[] {
+  const grouped = groupByMethod(rows);
+  return [...grouped.entries()].map(([key, bucket]) => {
+    const first = bucket[0];
+    return {
+      key,
+      label: first.behaviorName,
+      methodType: first.methodType,
+      points: trendMeasurement(bucket),
+    };
+  });
+}
+
 export function trendMeasurement(rows: MeasurementRow[]): TrendPoint[] {
   const byDay = groupByDay(rows);
   return [...byDay.entries()]

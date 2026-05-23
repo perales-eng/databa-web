@@ -14,7 +14,7 @@
 | 3.5 — Reparaciones sobre Fase 3 | DONE | `4e8c524` |
 | 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
 | 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
-| 6 — Export PDF + gráficos avanzados | TODO | — |
+| 6 — Export PDF + gráficos avanzados | DONE | (pendiente commit) |
 | 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, `e1fe655` |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
 
@@ -71,11 +71,11 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 ## Fase 6 — PDF + gráficos avanzados
 
-- [ ] **6.1.** Decidir librería: `@react-pdf/renderer` (recomendado, JSX server-side).
-- [ ] **6.2.** Template PDF de reporte por estudiante (cabecera org + datos del estudiante + gráficos como imágenes o tablas).
-- [ ] **6.3.** Server action `exportReportPDF(filters)` que devuelve `application/pdf`.
-- [ ] **6.4.** Gráfico comparativo entre métodos (recharts) en el reporte por estudiante.
-- [ ] **6.5.** Anotaciones / notas clínicas en el PDF (campo opcional).
+- [x] **6.1.** Decidir librería: `@react-pdf/renderer` (recomendado, JSX server-side). — Instalada `^4.5.1`.
+- [x] **6.2.** Template PDF de reporte por estudiante. — `src/lib/reports/pdf-template.tsx` (header con org, KPIs, tablas de mediciones / oportunidades / temporal, sección notas, footer con fecha).
+- [x] **6.3.** Route handler `/reports/export.pdf?studentId=…` que devuelve `application/pdf`. — Decidido route handler en vez de server action por el mismo motivo que CSV.
+- [x] **6.4.** Gráfico comparativo entre métodos (recharts) en la card por estudiante. — `MultiTrendChart` + `trendByMethodSeries`.
+- [x] **6.5.** Anotaciones / notas clínicas en el PDF. — Campo en `ReportFilters` que viaja como `?notes=…`.
 
 **Criterio de cierre:** PDF descargable y abre limpio en Acrobat/Preview/Chrome.
 
