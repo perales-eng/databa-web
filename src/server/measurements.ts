@@ -253,6 +253,7 @@ const abcSchema = z.object({
 export async function saveABCRecord(
   studentId: string,
   sessionId: string,
+  behaviorName: string,
   formData: FormData,
 ): Promise<MeasurementSaveResult> {
   const { organization } = await requireOrganization();
@@ -266,6 +267,8 @@ export async function saveABCRecord(
     data: {
       organizationId: organization.id,
       studentId,
+      sessionId,
+      behaviorName,
       occurredAt: new Date(parsed.data.occurredAt),
       location: parsed.data.location || null,
       peoplePresent: parsed.data.peoplePresent || null,
@@ -302,6 +305,7 @@ const anecdotalSchema = z.object({
 export async function saveAnecdotalRecord(
   studentId: string,
   sessionId: string,
+  behaviorName: string,
   formData: FormData,
 ): Promise<MeasurementSaveResult> {
   const { organization } = await requireOrganization();
@@ -315,6 +319,8 @@ export async function saveAnecdotalRecord(
     data: {
       organizationId: organization.id,
       studentId,
+      sessionId,
+      behaviorName,
       recordDate: new Date(parsed.data.recordDate),
       recordTime: parsed.data.recordTime || null,
       title: parsed.data.title.trim(),
@@ -350,6 +356,7 @@ export async function saveEventSamplingResult(data: {
     data: {
       organizationId: organization.id,
       studentId: data.studentId,
+      sessionId: data.sessionId,
       behaviorName: data.behaviorName,
       sessionDurationMin: data.sessionDurationMin,
       intensityScale: data.intensityScale,

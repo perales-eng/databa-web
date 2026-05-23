@@ -98,12 +98,86 @@ async function main() {
   });
   console.log(`✓ Sesiones en rango ±60d: ${inRange.length}`);
 
-  // 8. Cleanup (hard delete del smoke test student)
+  // 8. MeasurementResult (Frequency)
+  const bm = await db.behaviorMethod.create({
+    data: {
+      organizationId: org.id,
+      studentId: student.id,
+      behaviorName: "Golpes smoke test",
+      methodType: "FREQUENCY",
+      config: { saveFrequency: true, saveTotalOccurrences: true, saveIRT: false },
+    },
+  });
+
+  const measResult = await db.measurementResult.create({
+    data: {
+      organizationId: org.id,
+      behaviorMethodId: bm.id,
+      sessionId: session.id,
+      methodType: "FREQUENCY",
+      behaviorName: bm.behaviorName,
+      resultValue: "5",
+      resultUnit: "occurrences",
+      sessionDurationSec: 1800,
+      rawData: { timestamps: [1000, 2000, 3000, 4000, 5000], rate: 0.167, irt: 1.0 },
+    },
+  });
+  console.log("✓ MeasurementResult creado:", measResult.id);
+
+  // 9. OpportunityResult
+  const oppResult = await db.opportunityResult.create({
+    data: {
+      organizationId: org.id,
+      behaviorMethodId: bm.id,
+      sessionId: session.id,
+      studentId: student.id,
+      totalOpportunities: 10,
+      successfulOpportunities: 7,
+      successPercentage: 70,
+      opportunityDetails: [{ timestamp: Date.now(), status: "success" }],
+      endCondition: "MANUAL",
+    },
+  });
+  console.log("✓ OpportunityResult creado:", oppResult.id);
+
+  // 10. ABCRecord con sessionId
+  const abcRecord = await db.aBCRecord.create({
+    data: {
+      organizationId: org.id,
+      studentId: student.id,
+      sessionId: session.id,
+      behaviorName: "Golpes smoke test",
+      occurredAt: new Date(),
+      behaviorDescription: "El estudiante golpeó la mesa",
+      antecedentType: "Instrucción verbal",
+      consequenceType: "Escape de tarea",
+    },
+  });
+  console.log("✓ ABCRecord con sessionId creado:", abcRecord.id);
+
+  // 11. Verificar que getSession los incluye
+  const fetchedSession = await db.therapySession.findFirst({
+    where: { id: session.id },
+    include: {
+      results: true,
+      opportunityResults: true,
+      abcRecords: true,
+      anecdotalRecords: true,
+      eventSamplings: true,
+    },
+  });
+  if (!fetchedSession) throw new Error("Sesión no encontrada");
+  if (fetchedSession.results.length !== 1) throw new Error(`Esperaba 1 MeasurementResult, recibí ${fetchedSession.results.length}`);
+  if (fetchedSession.opportunityResults.length !== 1) throw new Error(`Esperaba 1 OpportunityResult, recibí ${fetchedSession.opportunityResults.length}`);
+  if (fetchedSession.abcRecords.length !== 1) throw new Error(`Esperaba 1 ABCRecord, recibí ${fetchedSession.abcRecords.length}`);
+  console.log("✓ getSession incluye MeasurementResult, OpportunityResult y ABCRecord correctamente");
+
+  // 12. Cleanup (hard delete del smoke test student — cascades todo)
   await db.therapySession.deleteMany({ where: { studentId: student.id } });
   await db.student.delete({ where: { id: student.id } });
   console.log("✓ Cleanup OK");
 
-  console.log("\n🎉 Smoke test Fase 2: TODO PASA");
+  console.log("\n✓ Smoke test Fase 2+3: TODO PASA");
 }
 
 main()

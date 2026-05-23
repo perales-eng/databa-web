@@ -11,10 +11,11 @@ import { saveAnecdotalRecord } from "@/server/measurements";
 type Props = {
   sessionId: string;
   studentId: string;
+  behaviorName: string;
   onSaved: () => void;
 };
 
-export function AnecdotalForm({ sessionId, studentId, onSaved }: Props) {
+export function AnecdotalForm({ sessionId, studentId, behaviorName, onSaved }: Props) {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -24,7 +25,7 @@ export function AnecdotalForm({ sessionId, studentId, onSaved }: Props) {
     setError(null);
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    const result = await saveAnecdotalRecord(studentId, sessionId, formData);
+    const result = await saveAnecdotalRecord(studentId, sessionId, behaviorName, formData);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

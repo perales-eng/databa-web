@@ -23,7 +23,7 @@ type BehaviorMethod = {
   behaviorName: string;
   methodType: MeasurementMethodType;
   description: string | null;
-  config: unknown;
+  config: Record<string, unknown>;
 };
 
 type Props = {
@@ -70,7 +70,7 @@ function MeasurePad({
   sessionStartMs: number;
   onSaved: () => void;
 }) {
-  const cfg = bm.config as Record<string, unknown>;
+  const cfg = bm.config;
 
   switch (bm.methodType) {
     case "FREQUENCY":
@@ -154,9 +154,9 @@ function MeasurePad({
         />
       );
     case "ABC":
-      return <ABCForm sessionId={sessionId} studentId={studentId} onSaved={onSaved} />;
+      return <ABCForm sessionId={sessionId} studentId={studentId} behaviorName={bm.behaviorName} onSaved={onSaved} />;
     case "ANECDOTAL":
-      return <AnecdotalForm sessionId={sessionId} studentId={studentId} onSaved={onSaved} />;
+      return <AnecdotalForm sessionId={sessionId} studentId={studentId} behaviorName={bm.behaviorName} onSaved={onSaved} />;
   }
 }
 

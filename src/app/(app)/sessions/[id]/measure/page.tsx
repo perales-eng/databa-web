@@ -46,7 +46,10 @@ export default async function MeasurePage({ params }: { params: Promise<{ id: st
         sessionId={session.id}
         studentId={session.studentId}
         studentName={session.student.name}
-        behaviorMethods={session.student.behaviorMethods}
+        behaviorMethods={session.student.behaviorMethods.map((bm) => ({
+          ...bm,
+          config: (bm.config ?? {}) as Record<string, unknown>,
+        }))}
       />
     </div>
   );

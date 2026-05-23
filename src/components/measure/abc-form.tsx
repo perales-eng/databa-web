@@ -12,13 +12,14 @@ import { saveABCRecord } from "@/server/measurements";
 type Props = {
   sessionId: string;
   studentId: string;
+  behaviorName: string;
   onSaved: () => void;
 };
 
 const ANTECEDENT_TYPES = ["Instrucción verbal", "Instrucción física", "Transición", "Espera", "Negación", "Otro"];
 const CONSEQUENCE_TYPES = ["Atención positiva", "Escape de tarea", "Acceso a objeto", "Atención negativa", "Sin consecuencia", "Otro"];
 
-export function ABCForm({ sessionId, studentId, onSaved }: Props) {
+export function ABCForm({ sessionId, studentId, behaviorName, onSaved }: Props) {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -28,7 +29,7 @@ export function ABCForm({ sessionId, studentId, onSaved }: Props) {
     setError(null);
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    const result = await saveABCRecord(studentId, sessionId, formData);
+    const result = await saveABCRecord(studentId, sessionId, behaviorName, formData);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

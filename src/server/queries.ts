@@ -90,6 +90,15 @@ export async function getSession(organizationId: string, id: string) {
       temporalSamplingResults: {
         orderBy: { measurementDate: "asc" },
       },
+      abcRecords: {
+        orderBy: { occurredAt: "asc" },
+      },
+      anecdotalRecords: {
+        orderBy: { recordDate: "asc" },
+      },
+      eventSamplings: {
+        orderBy: { measurementDate: "asc" },
+      },
       _count: { select: { results: true } },
     },
   });

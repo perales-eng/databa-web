@@ -64,7 +64,10 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const totalMeasurements =
     session._count.results +
     session.opportunityResults.length +
-    session.temporalSamplingResults.length;
+    session.temporalSamplingResults.length +
+    session.abcRecords.length +
+    session.anecdotalRecords.length +
+    session.eventSamplings.length;
 
   return (
     <div>
@@ -225,6 +228,90 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                           <Badge variant="secondary">Muestreo</Badge>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {format(r.measurementDate, "HH:mm")}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {session.eventSamplings.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Event sampling
+                  </h3>
+                  <ul className="divide-y">
+                    {session.eventSamplings.map((r) => {
+                      const events = r.data as { timestamp: number }[];
+                      return (
+                        <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{r.behaviorName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {events.length} eventos · {r.sessionDurationMin} min
+                              {r.dataSaveType ? ` · ${r.dataSaveType}` : ""}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <Badge variant="secondary">Event sampling</Badge>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {format(r.measurementDate, "HH:mm")}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              )}
+
+              {session.abcRecords.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Registros ABC
+                  </h3>
+                  <ul className="divide-y">
+                    {session.abcRecords.map((r) => (
+                      <li key={r.id} className="flex items-start justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {r.behaviorName || r.behaviorDescription}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {r.antecedentType ? `A: ${r.antecedentType}` : ""}
+                            {r.consequenceType ? ` · C: ${r.consequenceType}` : ""}
+                            {r.functionAnalysis ? ` · ${r.functionAnalysis}` : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge variant="secondary">ABC</Badge>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(r.occurredAt, "HH:mm")}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {session.anecdotalRecords.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Registros anecdóticos
+                  </h3>
+                  <ul className="divide-y">
+                    {session.anecdotalRecords.map((r) => (
+                      <li key={r.id} className="flex items-start justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{r.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge variant="secondary">Anecdótico</Badge>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {r.recordTime ?? format(r.recordDate, "HH:mm")}
                           </p>
                         </div>
                       </li>
