@@ -7,6 +7,7 @@ import { Users, Calendar, BarChart3, Activity, ChevronRight, Plus } from "lucide
 import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
+import { InstallPrompt } from "@/components/install-prompt";
 
 const cards = [
   { href: "/students", title: "Estudiantes", description: "Gestioná los estudiantes de tu organización.", icon: Users },
@@ -57,6 +58,9 @@ export default async function DashboardPage() {
         <p className="mt-1 text-muted-foreground">
           Organización: <span className="font-medium text-foreground">{organization.name}</span>
         </p>
+        <div className="mt-4">
+          <InstallPrompt />
+        </div>
       </header>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
