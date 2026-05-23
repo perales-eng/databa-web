@@ -32,9 +32,11 @@ jobs:
       - name: Tests
         run: npm test
 
-      - name: Build (sin DB en runtime)
+      - name: Build (sin DB en runtime — skip migrate deploy en CI)
         env:
           DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-          NEXTAUTH_SECRET: "ci-placeholder-secret-not-used-at-runtime"
-          NEXTAUTH_URL: "http://localhost:3000"
-        run: npm run build
+          AUTH_SECRET: "ci-placeholder-secret-not-used-at-runtime"
+          AUTH_URL: "http://localhost:3000"
+        # En CI el contenedor no tiene una BD real para migrar, así que
+        # corremos sólo el build sin el "prisma migrate deploy" del script.
+        run: npx next build

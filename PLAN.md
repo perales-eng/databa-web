@@ -18,6 +18,7 @@
 | 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, `e1fe655` |
 | 8 — Hardening (tests, lint en CI, deps) | DONE | `9e8bc3d` |
 | 9 — PWA (instalable Android/iOS/Mac) | DONE | `d82bf97` |
+| 10 — Deploy prep (Vercel + Neon) | DONE (manual deploy pendiente) | (pendiente commit) |
 
 ---
 
