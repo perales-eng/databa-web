@@ -83,6 +83,7 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   memberships      Membership[]
+  invitations      Invitation[]
   students         Student[]
   behaviors        Behavior[]
   behaviorMethods  BehaviorMethod[]
@@ -101,6 +102,23 @@ model Membership {
 
   @@unique([userId, organizationId])
   @@index([organizationId])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           Role      @default(THERAPIST)
+  token          String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  createdById    String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
 }
 
 // ============================================================
