@@ -13,7 +13,7 @@
 | 3 — Registro de mediciones en sesión | DONE | `6142760` |
 | 3.5 — Reparaciones sobre Fase 3 | DONE | `4e8c524` |
 | 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
-| 5 — Reportes (vistas + CSV) | DONE | (pendiente commit) |
+| 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
 | 7 — Onboarding + multi-miembro | EN CURSO (7.1/7.2 DONE `e6b3901`) | — |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
