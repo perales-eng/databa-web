@@ -15,7 +15,7 @@
 | 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
 | 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
-| 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, (catálogo pendiente commit) |
+| 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, `e1fe655` |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
 
 ---
