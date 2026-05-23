@@ -13,7 +13,7 @@
 | 3 — Registro de mediciones en sesión | DONE | `6142760` |
 | 3.5 — Reparaciones sobre Fase 3 | DONE | `4e8c524` |
 | 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
-| 5 — Reportes (vistas + CSV) | TODO (sólo placeholder) | — |
+| 5 — Reportes (vistas + CSV) | DONE | (pendiente commit) |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
 | 7 — Onboarding + multi-miembro | EN CURSO (7.1/7.2 DONE `e6b3901`) | — |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
@@ -57,13 +57,13 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 ## Fase 5 — Reportes (vistas + CSV)
 
-- [ ] **5.1.** `lib/reports/aggregations.ts` puro: agrupar `MeasurementResult` por `behaviorMethodId` y fecha; reusar `calc.ts`.
-- [ ] **5.2.** Página `/reports` con tres tabs: **General** (KPIs org), **Por estudiante**, **Por método** (individual).
-- [ ] **5.3.** Componente `<TrendChart>` con `recharts` (line + bar) por método de medición.
-- [ ] **5.4.** Filtros: rango de fechas, estudiante, método.
-- [ ] **5.5.** Server action `exportReportCSV(filters)` que devuelve `Response` con `text/csv` (sin librerías).
-- [ ] **5.6.** Botón "Descargar CSV" en cada vista.
-- [ ] **5.7.** Tests de `aggregations.ts`.
+- [x] **5.1.** `lib/reports/aggregations.ts` puro: agrupar `MeasurementResult` por `behaviorMethodId` y fecha; reusar `calc.ts`.
+- [x] **5.2.** Página `/reports` con tres tabs: **General** (KPIs org), **Por estudiante**, **Por método** (individual).
+- [x] **5.3.** Componente `<TrendChart>` con `recharts` (line + bar) por método de medición.
+- [x] **5.4.** Filtros: rango de fechas, estudiante, método.
+- [x] **5.5.** Route handler `/reports/export.csv` que devuelve `Response` con `text/csv` (sin librerías). — Decidido route handler en vez de server action porque las server actions de Next 16 no exponen `Response` directo al cliente para download.
+- [x] **5.6.** Botón "Descargar CSV" en cada vista. — En `ReportFilters`, link a `/reports/export.csv?…` con los filtros + tab activo.
+- [x] **5.7.** Tests de `aggregations.ts`. — 14 tests + 3 de `csv.ts`.
 
 **Criterio de cierre:** los 3 reportes muestran datos reales y exportan CSV válido.
 

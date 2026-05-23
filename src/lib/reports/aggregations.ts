@@ -71,7 +71,7 @@ export type Filters = {
   methodType?: MeasurementMethodType | null;
 };
 
-export function filterMeasurements(rows: MeasurementRow[], f: Filters): MeasurementRow[] {
+export function filterMeasurements<T extends MeasurementRow>(rows: T[], f: Filters): T[] {
   return rows.filter((r) => {
     if (!inRange(r.measurementDate, f.from ?? null, f.to ?? null)) return false;
     if (f.studentId && r.studentId !== f.studentId) return false;
@@ -81,7 +81,7 @@ export function filterMeasurements(rows: MeasurementRow[], f: Filters): Measurem
   });
 }
 
-export function filterOpportunities(rows: OpportunityRow[], f: Filters): OpportunityRow[] {
+export function filterOpportunities<T extends OpportunityRow>(rows: T[], f: Filters): T[] {
   return rows.filter((r) => {
     if (!inRange(r.measurementDate, f.from ?? null, f.to ?? null)) return false;
     if (f.studentId && r.studentId !== f.studentId) return false;
@@ -90,7 +90,7 @@ export function filterOpportunities(rows: OpportunityRow[], f: Filters): Opportu
   });
 }
 
-export function filterTemporal(rows: TemporalSamplingRow[], f: Filters): TemporalSamplingRow[] {
+export function filterTemporal<T extends TemporalSamplingRow>(rows: T[], f: Filters): T[] {
   return rows.filter((r) => {
     if (!inRange(r.measurementDate, f.from ?? null, f.to ?? null)) return false;
     if (f.studentId && r.studentId !== f.studentId) return false;
