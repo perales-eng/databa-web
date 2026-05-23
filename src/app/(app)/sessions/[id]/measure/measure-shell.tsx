@@ -145,6 +145,7 @@ function MeasurePad({
       return (
         <EventSamplingPad
           sessionId={sessionId}
+          behaviorMethodId={bm.id}
           studentId={studentId}
           behaviorName={bm.behaviorName}
           sessionDurationMin={(cfg.sessionDurationMinutes as number) ?? 30}

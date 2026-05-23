@@ -5,6 +5,9 @@ import { RotateCcw, StopCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveDurationResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+
+type Snapshot = { durations: number[] };
 
 type Props = {
   sessionId: string;
@@ -26,6 +29,16 @@ export function DurationPad({ sessionId, behaviorMethodId, behaviorName, session
   const [elapsed, setElapsed] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { durations },
+    isDirty: durations.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.durations)) setDurations(snap.durations);
+    },
+  });
 
   function startEpisode() {
     setEpisodeStart(Date.now());
@@ -66,6 +79,7 @@ export function DurationPad({ sessionId, behaviorMethodId, behaviorName, session
     }
     const avg = durations.length ? (durations.reduce((a, b) => a + b, 0) / durations.length).toFixed(1) : 0;
     toast.success(`"${behaviorName}" guardado — ${durations.length} episodios, promedio ${avg}s`);
+    await clear();
     setDurations([]);
     onSaved();
   }

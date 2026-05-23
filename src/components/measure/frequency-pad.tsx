@@ -5,6 +5,7 @@ import { Minus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveFrequencyResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 
 type Props = {
   sessionId: string;
@@ -14,9 +15,21 @@ type Props = {
   onSaved: () => void;
 };
 
+type Snapshot = { timestamps: number[] };
+
 export function FrequencyPad({ sessionId, behaviorMethodId, behaviorName, sessionStartMs, onSaved }: Props) {
   const [timestamps, setTimestamps] = React.useState<number[]>([]);
   const [saving, setSaving] = React.useState(false);
+
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { timestamps },
+    isDirty: timestamps.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.timestamps)) setTimestamps(snap.timestamps);
+    },
+  });
 
   function tap() {
     setTimestamps((prev) => [...prev, Date.now()]);
@@ -41,6 +54,7 @@ export function FrequencyPad({ sessionId, behaviorMethodId, behaviorName, sessio
       return;
     }
     toast.success(`"${behaviorName}" guardado — ${timestamps.length} ocurrencias`);
+    await clear();
     setTimestamps([]);
     onSaved();
   }

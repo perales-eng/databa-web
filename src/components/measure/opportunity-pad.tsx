@@ -5,6 +5,9 @@ import { CheckCircle, XCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveOpportunityResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+
+type Snapshot = { opportunities: Opportunity[] };
 
 type Props = {
   sessionId: string;
@@ -32,6 +35,16 @@ export function OpportunityPad({
   const [opportunities, setOpportunities] = React.useState<Opportunity[]>([]);
   const [saving, setSaving] = React.useState(false);
 
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { opportunities },
+    isDirty: opportunities.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.opportunities)) setOpportunities(snap.opportunities);
+    },
+  });
+
   const isComplete = maxOpportunities !== null && opportunities.length >= maxOpportunities;
 
   function record(success: boolean) {
@@ -58,6 +71,7 @@ export function OpportunityPad({
       return;
     }
     toast.success(`"${behaviorName}" guardado — ${correct}/${opportunities.length} (${pct}%)`);
+    await clear();
     setOpportunities([]);
     onSaved();
   }

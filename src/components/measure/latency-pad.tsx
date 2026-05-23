@@ -5,6 +5,9 @@ import { RotateCcw, Zap, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveLatencyResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+
+type Snapshot = { times: number[] };
 
 type Props = {
   sessionId: string;
@@ -25,6 +28,16 @@ export function LatencyPad({ sessionId, behaviorMethodId, behaviorName, sessionS
   const [elapsed, setElapsed] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { times },
+    isDirty: times.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.times)) setTimes(snap.times);
+    },
+  });
 
   function giveStimulus() {
     setStimulusMs(Date.now());
@@ -64,6 +77,7 @@ export function LatencyPad({ sessionId, behaviorMethodId, behaviorName, sessionS
       return;
     }
     toast.success(`"${behaviorName}" guardado — ${times.length} mediciones`);
+    await clear();
     setTimes([]);
     onSaved();
   }

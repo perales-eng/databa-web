@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveEventSamplingResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 
 type Props = {
   sessionId: string;
+  behaviorMethodId: string;
   studentId: string;
   behaviorName: string;
   sessionDurationMin: number;
@@ -27,8 +29,11 @@ type EventEntry = {
   note?: string;
 };
 
+type Snapshot = { events: EventEntry[]; counter: number };
+
 export function EventSamplingPad({
   sessionId,
+  behaviorMethodId,
   studentId,
   behaviorName,
   sessionDurationMin,
@@ -39,11 +44,23 @@ export function EventSamplingPad({
   const [events, setEvents] = React.useState<EventEntry[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [editingNote, setEditingNote] = React.useState<number | null>(null);
-  const counter = React.useRef(0);
+  const [counter, setCounter] = React.useState(0);
+
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { events, counter },
+    isDirty: events.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.events)) setEvents(snap.events);
+      if (typeof snap.counter === "number") setCounter(snap.counter);
+    },
+  });
 
   function addEvent() {
-    counter.current += 1;
-    setEvents((prev) => [...prev, { id: counter.current, timestamp: Date.now() }]);
+    const next = counter + 1;
+    setCounter(next);
+    setEvents((prev) => [...prev, { id: next, timestamp: Date.now() }]);
   }
 
   function removeEvent(id: number) {
@@ -76,6 +93,8 @@ export function EventSamplingPad({
       return;
     }
     toast.success(`"${behaviorName}" guardado — ${events.length} eventos`);
+    await clear();
+    setCounter(0);
     setEvents([]);
     onSaved();
   }

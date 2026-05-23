@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { saveTemporalSamplingResult } from "@/server/measurements";
 import { buildIntervals } from "@/lib/measurements/calc";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 
 type Props = {
   sessionId: string;
@@ -19,6 +20,8 @@ type Props = {
 };
 
 type IntervalState = { index: number; startSec: number; marked: boolean | null };
+
+type Snapshot = { intervals: IntervalState[]; elapsed: number };
 
 const SAMPLING_LABELS: Record<string, string> = {
   PARTIAL: "Partial interval",
@@ -52,6 +55,22 @@ export function TemporalSamplingPad({
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const currentIndex = Math.min(Math.floor(elapsed / intervalDurationSec), schedule.length - 1);
   const isFinished = elapsed >= totalDurationSec;
+
+  const isDirty = intervals.some((iv) => iv.marked !== null) || elapsed > 0;
+
+  const expectedLen = schedule.length;
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { intervals, elapsed },
+    isDirty,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.intervals) && snap.intervals.length === expectedLen) {
+        setIntervals(snap.intervals);
+      }
+      if (typeof snap.elapsed === "number") setElapsed(snap.elapsed);
+    },
+  });
 
   function start() {
     setRunning(true);
@@ -110,6 +129,7 @@ export function TemporalSamplingPad({
     const marked = completedIntervals.filter((i) => i.marked).length;
     const pct = ((marked / completedIntervals.length) * 100).toFixed(0);
     toast.success(`"${behaviorName}" guardado — ${marked}/${completedIntervals.length} intervalos (${pct}%)`);
+    await clear();
     reset();
     onSaved();
   }

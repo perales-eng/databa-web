@@ -5,6 +5,9 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveIntensityResult } from "@/server/measurements";
 import { toast } from "sonner";
+import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+
+type Snapshot = { values: number[] };
 
 type Props = {
   sessionId: string;
@@ -28,6 +31,16 @@ export function IntensityPad({
   const [values, setValues] = React.useState<number[]>([]);
   const [saving, setSaving] = React.useState(false);
 
+  const { clear } = useMeasurementProgress<Snapshot>({
+    sessionId,
+    behaviorMethodId,
+    state: { values },
+    isDirty: values.length > 0,
+    onHydrate: (snap) => {
+      if (Array.isArray(snap.values)) setValues(snap.values);
+    },
+  });
+
   const steps = Array.from({ length: scaleMax - scaleMin + 1 }, (_, i) => scaleMin + i);
 
   function record(val: number) {
@@ -50,6 +63,7 @@ export function IntensityPad({
     }
     const avg = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : 0;
     toast.success(`"${behaviorName}" guardado — ${values.length} registros, promedio ${avg}`);
+    await clear();
     setValues([]);
     onSaved();
   }
