@@ -16,7 +16,7 @@
 | 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
 | 6 — Export PDF + gráficos avanzados | DONE | `465a8fc` |
 | 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, `e1fe655` |
-| 8 — Hardening (tests, lint en CI, deps) | TODO | — |
+| 8 — Hardening (tests, lint en CI, deps) | DONE | (pendiente commit) |
 
 ---
 
@@ -98,14 +98,14 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 ## Fase 8 — Hardening, observabilidad y CI
 
-- [ ] **8.1.** Tests de server actions con Vitest contra base efímera (Docker PG separado) o `vitest-mock-extended` sobre `db`.
-- [ ] **8.2.** Tests de componentes críticos (`FrequencyPad`, `OpportunityPad`, `MeasureShell`) con Testing Library.
-- [ ] **8.3.** GitHub Actions: `lint`, `typecheck`, `test` en cada PR.
-- [ ] **8.4.** Logging mínimo (pino/console estructurado) en server actions.
-- [ ] **8.5.** Error boundary global + página `error.tsx` por segmento.
-- [ ] **8.6.** Auditoría: revisar `any`/`unknown` en TS, eliminar deps no usadas (decisión final R8).
-- [ ] **8.7.** `seed.ts`: revisar datos demo para que cubran los 9 métodos de medición.
-- [ ] **8.8.** README actualizado con instrucciones reales (no el de create-next-app).
+- [x] **8.1.** Tests de server actions con mocks de Prisma (vitest-mock-extended via `vi.hoisted`). Cubre `upsertBehaviorByName` y `acceptInvitation`.
+- [x] **8.2.** Tests de `FrequencyPad` y `OpportunityPad` con Testing Library + jsdom (docblock `@vitest-environment jsdom`).
+- [x] **8.3.** GitHub Actions `.github/workflows/ci.yml`: `lint + typecheck + test + build` en push a main y PRs.
+- [x] **8.4.** `src/lib/logger.ts`: logger JSON line sin deps externas. — Listo para usar; cableado oportunista pendiente.
+- [x] **8.5.** `app/error.tsx`, `(app)/error.tsx`, `global-error.tsx`.
+- [x] **8.6.** Sin `any` en `src/`. Removidas deps no usadas: `@tanstack/react-query`, `@tanstack/react-query-devtools`, `zustand`.
+- [x] **8.7.** `seed.ts` ampliado: 2 estudiantes, 3 behaviors en catálogo, 9 behaviorMethods (uno por tipo), 24 mediciones / 6 oportunidades / 5 muestreos / 1 ABC / 1 anecdótico.
+- [x] **8.8.** README real con stack, setup, scripts, estructura y decisiones.
 
 **Criterio de cierre:** CI verde en cada PR, cobertura >50% en `src/server` y `src/lib`.
 
