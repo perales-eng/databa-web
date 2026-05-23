@@ -24,6 +24,12 @@ export default async function EditBehaviorMethodPage({
   });
   if (!bm) notFound();
 
+  const catalog = await db.behavior.findMany({
+    where: { organizationId: organization.id, deletedAt: null },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+
   return (
     <div className="mx-auto max-w-2xl">
       <Link
@@ -40,6 +46,7 @@ export default async function EditBehaviorMethodPage({
         <CardContent>
           <BehaviorMethodForm
             studentId={student.id}
+            catalog={catalog.map((c) => c.name)}
             initial={{
               id: bm.id,
               behaviorName: bm.behaviorName,

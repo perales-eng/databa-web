@@ -14,6 +14,12 @@ export default async function NewBehaviorMethodPage({ params }: { params: Promis
   });
   if (!student) notFound();
 
+  const catalog = await db.behavior.findMany({
+    where: { organizationId: organization.id, deletedAt: null },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+
   return (
     <div className="mx-auto max-w-2xl">
       <Link
@@ -28,7 +34,7 @@ export default async function NewBehaviorMethodPage({ params }: { params: Promis
           <CardDescription>{student.name}</CardDescription>
         </CardHeader>
         <CardContent>
-          <BehaviorMethodForm studentId={student.id} />
+          <BehaviorMethodForm studentId={student.id} catalog={catalog.map((c) => c.name)} />
         </CardContent>
       </Card>
     </div>

@@ -15,7 +15,7 @@
 | 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
 | 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
-| 7 — Onboarding + multi-miembro | EN CURSO (7.1/7.2 DONE `e6b3901`) | — |
+| 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, (catálogo pendiente commit) |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
 
 ---
@@ -85,12 +85,12 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 - [x] **7.1. Onboarding real:** form en `/onboarding` que crea `Organization` + `Membership(role=OWNER)` en una transacción. Slug auto-derivado y único.
 - [x] **7.2.** Borrar el copy "Fase 7" de `auth-helpers.ts` y `onboarding/page.tsx` una vez implementado.
-- [ ] **7.3. Modelo `Invitation`** (`email`, `organizationId`, `role`, `token`, `expiresAt`, `acceptedAt?`). Migración.
-- [ ] **7.4.** Server action `inviteMember(email, role)` (solo OWNER/ADMIN) → genera token + (opcional) envía email vía Resend.
-- [ ] **7.5.** Página `/invite/[token]` que: si hay sesión, crea Membership; si no, redirige a signup con el email preasignado y persiste el token en cookie.
-- [ ] **7.6.** Settings → tab **Miembros**: listar, cambiar rol, revocar.
-- [ ] **7.7.** Settings → editar nombre de organización (solo OWNER).
-- [ ] **7.8.** Catálogo `Behavior` reutilizable: CRUD bajo `/settings/behaviors` + autocomplete al crear `BehaviorMethod`.
+- [x] **7.3. Modelo `Invitation`** (`email`, `organizationId`, `role`, `token`, `expiresAt`, `acceptedAt?`). Migración.
+- [x] **7.4.** Server action `inviteMember(email, role)` (solo OWNER/ADMIN) → genera token. Email opcional via Resend queda diferido; UX actual = copy-link.
+- [x] **7.5.** Página `/invite/[token]`: si email coincide con sesión, auto-accept; si no, ofrece aceptar igual o cambiar de cuenta. Sin sesión redirige a `/login?from=…`.
+- [x] **7.6.** Settings → sección Miembros: listar, cambiar rol (OWNER only, no auto), revocar invitación, remover miembro.
+- [x] **7.7.** Settings → editar nombre de organización (solo OWNER).
+- [x] **7.8.** Catálogo `Behavior` reutilizable: CRUD bajo `/settings/behaviors` + `<datalist>` autocomplete al crear/editar `BehaviorMethod`. Upsert automático al guardar un BM enlaza al catálogo.
 
 **Criterio de cierre:** usuario nuevo se registra → crea org → invita compañero → compañero acepta y entra como THERAPIST.
 

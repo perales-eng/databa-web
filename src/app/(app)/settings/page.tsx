@@ -1,6 +1,9 @@
+import Link from "next/link";
+import { ListTree } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RenameOrgForm } from "./_components/rename-org-form";
 import { InviteForm } from "./_components/invite-form";
@@ -25,7 +28,7 @@ export default async function SettingsPage() {
   const isOwner = role === "OWNER";
   const canInvite = isOwner || role === "ADMIN";
 
-  const [members, invitations] = await Promise.all([
+  const [members, invitations, behaviorCount] = await Promise.all([
     db.membership.findMany({
       where: { organizationId: organization.id },
       include: { user: { select: { id: true, email: true, name: true } } },
@@ -35,6 +38,7 @@ export default async function SettingsPage() {
       where: { organizationId: organization.id, acceptedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: "desc" },
     }),
+    db.behavior.count({ where: { organizationId: organization.id, deletedAt: null } }),
   ]);
 
   return (
@@ -74,6 +78,24 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle>Catálogo de conductas</CardTitle>
+              <CardDescription>
+                {behaviorCount} {behaviorCount === 1 ? "conducta registrada" : "conductas registradas"}. Reusables al configurar métodos de medición.
+              </CardDescription>
+            </div>
+            <Link href="/settings/behaviors">
+              <Button variant="outline" size="sm">
+                <ListTree className="h-4 w-4" /> Gestionar
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader>

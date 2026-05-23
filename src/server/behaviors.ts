@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { methodConfigSchemas, type MethodType } from "@/lib/measurements/schemas";
+import { upsertBehaviorByName } from "@/server/behavior-catalog";
 
 const METHOD_TYPES: MethodType[] = [
   "FREQUENCY",
@@ -125,11 +126,15 @@ export async function createBehaviorMethod(
         .filter(Boolean)
     : null;
 
+  const behaviorName = base.data.behaviorName.trim();
+  const catalogEntry = await upsertBehaviorByName(organization.id, behaviorName);
+
   const bm = await db.behaviorMethod.create({
     data: {
       organizationId: organization.id,
       studentId: student.id,
-      behaviorName: base.data.behaviorName.trim(),
+      behaviorId: catalogEntry.id,
+      behaviorName,
       methodType: base.data.methodType,
       description: base.data.description?.trim() || null,
       functionTypes: functionTypes ?? [],
@@ -174,10 +179,14 @@ export async function updateBehaviorMethod(
         .filter(Boolean)
     : null;
 
+  const behaviorName = base.data.behaviorName.trim();
+  const catalogEntry = await upsertBehaviorByName(organization.id, behaviorName);
+
   await db.behaviorMethod.update({
     where: { id },
     data: {
-      behaviorName: base.data.behaviorName.trim(),
+      behaviorId: catalogEntry.id,
+      behaviorName,
       methodType: base.data.methodType,
       description: base.data.description?.trim() || null,
       functionTypes: functionTypes ?? [],

@@ -35,6 +35,7 @@ type Initial = {
 type Props = {
   studentId: string;
   initial?: Initial;
+  catalog?: string[];
 };
 
 function Checkbox({
@@ -298,7 +299,7 @@ function MethodConfigFields({
   }
 }
 
-export function BehaviorMethodForm({ studentId, initial }: Props) {
+export function BehaviorMethodForm({ studentId, initial, catalog = [] }: Props) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -339,7 +340,21 @@ export function BehaviorMethodForm({ studentId, initial }: Props) {
           required
           maxLength={100}
           placeholder="Ej: Golpes a pares, Contacto visual, etc."
+          list="behavior-catalog"
+          autoComplete="off"
         />
+        {catalog.length > 0 ? (
+          <datalist id="behavior-catalog">
+            {catalog.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        ) : null}
+        <p className="text-xs text-muted-foreground">
+          {catalog.length > 0
+            ? "Sugerencias del catálogo de la organización; podés tipear una conducta nueva."
+            : "Las conductas nuevas quedan agregadas al catálogo automáticamente."}
+        </p>
       </div>
 
       <div className="space-y-2">
