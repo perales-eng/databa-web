@@ -11,7 +11,7 @@
 | 1 — Modelo dominio Prisma | DONE | `cae270f` |
 | 2 — CRUD estudiantes/sesiones + calendario | DONE | `02de214` |
 | 3 — Registro de mediciones en sesión | DONE | `6142760` |
-| 3.5 — Reparaciones sobre Fase 3 | DONE | — |
+| 3.5 — Reparaciones sobre Fase 3 | DONE | `4e8c524` |
 | 4 — Sesiones reanudables + paralelas | TODO | — |
 | 5 — Reportes (vistas + CSV) | TODO (sólo placeholder) | — |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
