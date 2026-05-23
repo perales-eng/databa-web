@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireOrganization, requireUser } from "@/lib/auth-helpers";
 import { invitationEmail, sendEmail } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
 
 const INVITATION_TTL_DAYS = 7;
 
@@ -164,6 +165,11 @@ export async function acceptInvitation(
   token: string,
 ): Promise<ActionResult<{ organizationId: string }>> {
   const user = await requireUser();
+
+  // Anti-enumeración de tokens: 20 intentos por user cada 5 min.
+  const rl = rateLimit(`accept-invite:${user.id}`, { max: 20, windowSec: 5 * 60 });
+  if (!rl.ok) return { ok: false, error: "Demasiados intentos. Probá más tarde." };
+
   const inv = await db.invitation.findUnique({ where: { token } });
   if (!inv) return { ok: false, error: "Invitación no encontrada" };
   if (inv.acceptedAt) return { ok: false, error: "La invitación ya fue aceptada" };
