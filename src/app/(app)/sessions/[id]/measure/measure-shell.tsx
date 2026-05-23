@@ -162,18 +162,12 @@ function MeasurePad({
 }
 
 export function MeasureShell({ sessionId, studentId, studentName, behaviorMethods }: Props) {
-  const [activeId, setActiveId] = React.useState<string | null>(
-    behaviorMethods[0]?.id ?? null,
-  );
   const [savedCounts, setSavedCounts] = React.useState<Record<string, number>>({});
   const [completing, setCompleting] = React.useState(false);
   const [sessionStartMs] = React.useState<number>(() => Date.now());
 
-  const activeBm = behaviorMethods.find((bm) => bm.id === activeId);
-
-  function handleSaved() {
-    if (!activeId) return;
-    setSavedCounts((prev) => ({ ...prev, [activeId]: (prev[activeId] ?? 0) + 1 }));
+  function handleSaved(bmId: string) {
+    setSavedCounts((prev) => ({ ...prev, [bmId]: (prev[bmId] ?? 0) + 1 }));
   }
 
   async function handleComplete() {
@@ -201,85 +195,58 @@ export function MeasureShell({ sessionId, studentId, studentName, behaviorMethod
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6 lg:flex-row">
-      <aside className="lg:w-64 shrink-0">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Conductas a medir</CardTitle>
-            <p className="text-xs text-muted-foreground">{studentName}</p>
-          </CardHeader>
-          <CardContent className="p-2">
-            <ul className="space-y-1">
-              {behaviorMethods.map((bm) => {
-                const count = savedCounts[bm.id] ?? 0;
-                return (
-                  <li key={bm.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveId(bm.id)}
-                      className={`flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                        bm.id === activeId
-                          ? "bg-accent text-accent-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{bm.behaviorName}</p>
-                        <p className={`mt-0.5 rounded-full px-1.5 py-0.5 text-xs inline-block ${METHOD_COLORS[bm.methodType]}`}>
-                          {METHOD_LABELS[bm.methodType]}
-                        </p>
-                      </div>
-                      {count > 0 && (
-                        <span className="ml-1 mt-0.5 shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
+  const totalSaved = Object.values(savedCounts).reduce((a, b) => a + b, 0);
 
-        <Button
-          onClick={handleComplete}
-          disabled={completing}
-          className="mt-4 w-full"
-          variant="outline"
-        >
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{studentName}</p>
+          <p className="text-xs text-muted-foreground">
+            {behaviorMethods.length} conductas · {totalSaved} registros guardados
+          </p>
+        </div>
+        <Button onClick={handleComplete} disabled={completing} variant="outline" size="sm">
           <CheckCircle2 className="h-4 w-4" />
           {completing ? "Completando…" : "Finalizar sesión"}
         </Button>
-      </aside>
+      </div>
 
-      <div className="flex-1">
-        {activeBm ? (
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <CardTitle>{activeBm.behaviorName}</CardTitle>
-                <Badge className={METHOD_COLORS[activeBm.methodType]}>
-                  {METHOD_LABELS[activeBm.methodType]}
-                </Badge>
-              </div>
-              {activeBm.description && (
-                <p className="text-sm text-muted-foreground">{activeBm.description}</p>
-              )}
-            </CardHeader>
-            <CardContent>
-              <MeasurePad
-                key={activeBm.id}
-                bm={activeBm}
-                sessionId={sessionId}
-                studentId={studentId}
-                sessionStartMs={sessionStartMs}
-                onSaved={handleSaved}
-              />
-            </CardContent>
-          </Card>
-        ) : null}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {behaviorMethods.map((bm) => {
+          const count = savedCounts[bm.id] ?? 0;
+          return (
+            <Card key={bm.id} className="flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CardTitle className="truncate text-base">{bm.behaviorName}</CardTitle>
+                    <Badge className={METHOD_COLORS[bm.methodType]}>
+                      {METHOD_LABELS[bm.methodType]}
+                    </Badge>
+                  </div>
+                  {count > 0 && (
+                    <span className="shrink-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+                      {count}
+                    </span>
+                  )}
+                </div>
+                {bm.description && (
+                  <p className="text-xs text-muted-foreground">{bm.description}</p>
+                )}
+              </CardHeader>
+              <CardContent className="flex-1">
+                <MeasurePad
+                  bm={bm}
+                  sessionId={sessionId}
+                  studentId={studentId}
+                  sessionStartMs={sessionStartMs}
+                  onSaved={() => handleSaved(bm.id)}
+                />
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
