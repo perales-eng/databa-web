@@ -28,7 +28,11 @@ export function InviteForm() {
     }
     const link = `${window.location.origin}/invite/${result.token}`;
     setGeneratedLink(link);
-    toast.success(`Invitación creada para ${result.email}`);
+    if (result.emailSent) {
+      toast.success(`Invitación enviada por email a ${result.email}`);
+    } else {
+      toast.success(`Invitación creada — compartí el link manualmente con ${result.email}`);
+    }
     router.refresh();
     (e.currentTarget as HTMLFormElement).reset();
   }

@@ -19,6 +19,7 @@
 | 8 — Hardening (tests, lint en CI, deps) | DONE | `9e8bc3d` |
 | 9 — PWA (instalable Android/iOS/Mac) | DONE | `d82bf97` |
 | 10 — Deploy prep (Vercel + Neon) | DONE (manual deploy pendiente) | `10b5e4a` |
+| 11 — Invitaciones por email (Resend) | DONE (key opcional) | (pendiente commit) |
 
 ---
 

@@ -5,10 +5,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireOrganization, requireUser } from "@/lib/auth-helpers";
+import { invitationEmail, sendEmail } from "@/lib/email";
 
 const INVITATION_TTL_DAYS = 7;
 
 export type ActionResult<T = unknown> = ({ ok: true } & T) | { ok: false; error: string };
+
+function appBaseUrl(): string {
+  return (process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
+}
 
 // ─────────────────── 7.7. Renombrar organización ────────────────────────────
 
@@ -46,7 +51,7 @@ function generateToken(): string {
 
 export async function inviteMember(
   formData: FormData,
-): Promise<ActionResult<{ token: string; email: string }>> {
+): Promise<ActionResult<{ token: string; email: string; emailSent: boolean }>> {
   const { organization, role } = await requireOrganization();
   if (role !== "OWNER" && role !== "ADMIN") {
     return { ok: false, error: "Sin permisos para invitar" };
@@ -87,8 +92,19 @@ export async function inviteMember(
     },
   });
 
+  // Intentar enviar email (silent fallback a copy-link si no hay Resend key).
+  const inviteUrl = `${appBaseUrl()}/invite/${token}`;
+  const { subject, html, text } = invitationEmail({
+    organizationName: organization.name,
+    inviterName: me.name ?? me.email,
+    inviteUrl,
+    role: parsed.data.role,
+  });
+  const emailResult = await sendEmail({ to: email, subject, html, text });
+  const emailSent = emailResult.ok;
+
   revalidatePath("/settings");
-  return { ok: true, token, email };
+  return { ok: true, token, email, emailSent };
 }
 
 export async function revokeInvitation(id: string): Promise<ActionResult> {
