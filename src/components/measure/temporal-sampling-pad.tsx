@@ -7,6 +7,7 @@ import { saveTemporalSamplingResult } from "@/server/measurements";
 import { buildIntervals } from "@/lib/measurements/calc";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { temporalSampling, type IntervalState as PureIntervalState } from "@/lib/measurements/pad-state";
 
 type Props = {
   sessionId: string;
@@ -19,7 +20,7 @@ type Props = {
   onSaved: () => void;
 };
 
-type IntervalState = { index: number; startSec: number; marked: boolean | null };
+type IntervalState = PureIntervalState;
 
 type Snapshot = { intervals: IntervalState[]; elapsed: number };
 
@@ -53,8 +54,8 @@ export function TemporalSamplingPad({
   const [elapsed, setElapsed] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentIndex = Math.min(Math.floor(elapsed / intervalDurationSec), schedule.length - 1);
-  const isFinished = elapsed >= totalDurationSec;
+  const currentIndex = temporalSampling.currentIndex(elapsed, intervalDurationSec, schedule.length);
+  const isFinished = temporalSampling.isFinished(elapsed, totalDurationSec);
 
   const isDirty = intervals.some((iv) => iv.marked !== null) || elapsed > 0;
 
@@ -90,13 +91,11 @@ export function TemporalSamplingPad({
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRunning(false);
     setElapsed(0);
-    setIntervals(schedule.map((s) => ({ ...s, marked: null })));
+    setIntervals(temporalSampling.reset(schedule.map((s) => ({ ...s, marked: null }))));
   }
 
   function mark(index: number, value: boolean) {
-    setIntervals((prev) =>
-      prev.map((iv) => (iv.index === index ? { ...iv, marked: value } : iv)),
-    );
+    setIntervals((prev) => temporalSampling.mark(prev, index, value));
   }
 
   React.useEffect(() => {
@@ -212,7 +211,7 @@ export function TemporalSamplingPad({
       <div className="flex gap-3 text-sm">
         <button
           type="button"
-          onClick={() => intervals.forEach((_, i) => mark(i, true))}
+          onClick={() => setIntervals((prev) => temporalSampling.markAll(prev, true))}
           disabled={running && !isFinished}
           className="flex items-center gap-1 text-emerald-600 hover:underline disabled:opacity-40"
         >
@@ -220,7 +219,7 @@ export function TemporalSamplingPad({
         </button>
         <button
           type="button"
-          onClick={() => intervals.forEach((_, i) => mark(i, false))}
+          onClick={() => setIntervals((prev) => temporalSampling.markAll(prev, false))}
           disabled={running && !isFinished}
           className="flex items-center gap-1 text-rose-500 hover:underline disabled:opacity-40"
         >

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { saveOpportunityResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { opportunity as opportunityState, type Opportunity as PureOpportunity } from "@/lib/measurements/pad-state";
 
-type Snapshot = { opportunities: Opportunity[] };
+type Snapshot = { opportunities: PureOpportunity[] };
 
 type Props = {
   sessionId: string;
@@ -20,7 +21,7 @@ type Props = {
   onSaved: () => void;
 };
 
-type Opportunity = { timestamp: number; success: boolean };
+type Opportunity = PureOpportunity;
 
 export function OpportunityPad({
   sessionId,
@@ -45,11 +46,10 @@ export function OpportunityPad({
     },
   });
 
-  const isComplete = maxOpportunities !== null && opportunities.length >= maxOpportunities;
+  const isComplete = opportunityState.isComplete(opportunities, maxOpportunities);
 
   function record(success: boolean) {
-    if (isComplete) return;
-    setOpportunities((prev) => [...prev, { timestamp: Date.now(), success }]);
+    setOpportunities((prev) => opportunityState.record(prev, success, Date.now(), maxOpportunities));
   }
 
   const correct = opportunities.filter((o) => o.success).length;
@@ -133,7 +133,7 @@ export function OpportunityPad({
         </div>
       )}
 
-      <Button variant="outline" size="sm" onClick={() => setOpportunities([])} disabled={opportunities.length === 0}>
+      <Button variant="outline" size="sm" onClick={() => setOpportunities(opportunityState.reset())} disabled={opportunities.length === 0}>
         <RotateCcw className="h-4 w-4" /> Reiniciar
       </Button>
 

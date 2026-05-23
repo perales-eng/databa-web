@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { saveFrequencyResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { frequency } from "@/lib/measurements/pad-state";
 
 type Props = {
   sessionId: string;
@@ -32,11 +33,11 @@ export function FrequencyPad({ sessionId, behaviorMethodId, behaviorName, sessio
   });
 
   function tap() {
-    setTimestamps((prev) => [...prev, Date.now()]);
+    setTimestamps((prev) => frequency.tap(prev, Date.now()));
   }
 
   function undo() {
-    setTimestamps((prev) => prev.slice(0, -1));
+    setTimestamps((prev) => frequency.undo(prev));
   }
 
   async function handleSave() {
@@ -78,7 +79,7 @@ export function FrequencyPad({ sessionId, behaviorMethodId, behaviorName, sessio
         <Button variant="outline" size="sm" onClick={undo} disabled={timestamps.length === 0}>
           <Minus className="h-4 w-4" /> Deshacer
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setTimestamps([])} disabled={timestamps.length === 0}>
+        <Button variant="outline" size="sm" onClick={() => setTimestamps(frequency.reset())} disabled={timestamps.length === 0}>
           <RotateCcw className="h-4 w-4" /> Reiniciar
         </Button>
       </div>

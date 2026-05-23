@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveEventSamplingResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { eventSampling, type EventEntry as PureEventEntry } from "@/lib/measurements/pad-state";
 
 type Props = {
   sessionId: string;
@@ -21,13 +22,7 @@ type Props = {
   onSaved: () => void;
 };
 
-type EventEntry = {
-  id: number;
-  timestamp: number;
-  durationSec?: number;
-  intensity?: number;
-  note?: string;
-};
+type EventEntry = PureEventEntry;
 
 type Snapshot = { events: EventEntry[]; counter: number };
 
@@ -58,17 +53,17 @@ export function EventSamplingPad({
   });
 
   function addEvent() {
-    const next = counter + 1;
-    setCounter(next);
-    setEvents((prev) => [...prev, { id: next, timestamp: Date.now() }]);
+    const next = eventSampling.add(events, counter, Date.now());
+    setCounter(next.counter);
+    setEvents(next.events);
   }
 
   function removeEvent(id: number) {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    setEvents((prev) => eventSampling.remove(prev, id));
   }
 
   function updateEvent(id: number, patch: Partial<Omit<EventEntry, "id">>) {
-    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    setEvents((prev) => eventSampling.update(prev, id, patch));
   }
 
   async function handleSave() {
@@ -94,8 +89,9 @@ export function EventSamplingPad({
     }
     toast.success(`"${behaviorName}" guardado — ${events.length} eventos`);
     await clear();
-    setCounter(0);
-    setEvents([]);
+    const fresh = eventSampling.reset();
+    setCounter(fresh.counter);
+    setEvents(fresh.events);
     onSaved();
   }
 
@@ -180,7 +176,7 @@ export function EventSamplingPad({
       )}
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setEvents([])} disabled={events.length === 0}>
+        <Button variant="outline" size="sm" onClick={() => { const r = eventSampling.reset(); setEvents(r.events); setCounter(r.counter); }} disabled={events.length === 0}>
           <RotateCcw className="h-4 w-4" /> Reiniciar
         </Button>
         <Button onClick={handleSave} disabled={saving || events.length === 0} className="flex-1">

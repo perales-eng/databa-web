@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { saveDurationResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { duration as durationState } from "@/lib/measurements/pad-state";
 
 type Snapshot = { durations: number[] };
 
@@ -51,8 +52,8 @@ export function DurationPad({ sessionId, behaviorMethodId, behaviorName, session
   function stopEpisode() {
     if (episodeStart === null) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
-    const durSec = Math.round((Date.now() - episodeStart) / 1000);
-    setDurations((prev) => [...prev, durSec]);
+    const durSec = (Date.now() - episodeStart) / 1000;
+    setDurations((prev) => durationState.addEpisode(prev, durSec));
     setEpisodeStart(null);
     setElapsed(0);
   }
@@ -132,7 +133,7 @@ export function DurationPad({ sessionId, behaviorMethodId, behaviorName, session
         )}
       </div>
 
-      <Button variant="outline" size="sm" onClick={() => setDurations([])} disabled={durations.length === 0 || isRunning}>
+      <Button variant="outline" size="sm" onClick={() => setDurations(durationState.reset())} disabled={durations.length === 0 || isRunning}>
         <RotateCcw className="h-4 w-4" /> Reiniciar
       </Button>
 

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { saveIntensityResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { intensity as intensityState } from "@/lib/measurements/pad-state";
 
 type Snapshot = { values: number[] };
 
@@ -44,7 +45,7 @@ export function IntensityPad({
   const steps = Array.from({ length: scaleMax - scaleMin + 1 }, (_, i) => scaleMin + i);
 
   function record(val: number) {
-    setValues((prev) => [...prev, val]);
+    setValues((prev) => intensityState.record(prev, val));
   }
 
   async function handleSave() {
@@ -106,7 +107,7 @@ export function IntensityPad({
         </div>
       )}
 
-      <Button variant="outline" size="sm" onClick={() => setValues([])} disabled={values.length === 0}>
+      <Button variant="outline" size="sm" onClick={() => setValues(intensityState.reset())} disabled={values.length === 0}>
         <RotateCcw className="h-4 w-4" /> Reiniciar
       </Button>
 

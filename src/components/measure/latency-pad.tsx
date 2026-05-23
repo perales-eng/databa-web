@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { saveLatencyResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
+import { latency as latencyState } from "@/lib/measurements/pad-state";
 
 type Snapshot = { times: number[] };
 
@@ -51,7 +52,7 @@ export function LatencyPad({ sessionId, behaviorMethodId, behaviorName, sessionS
     if (stimulusMs === null) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
     const latencyMs = Date.now() - stimulusMs;
-    setTimes((prev) => [...prev, latencyMs / 1000]);
+    setTimes((prev) => latencyState.addResponse(prev, latencyMs / 1000));
     setStimulusMs(null);
     setElapsed(0);
   }
@@ -132,7 +133,7 @@ export function LatencyPad({ sessionId, behaviorMethodId, behaviorName, sessionS
         )}
       </div>
 
-      <Button variant="outline" size="sm" onClick={() => setTimes([])} disabled={times.length === 0 || isWaiting}>
+      <Button variant="outline" size="sm" onClick={() => setTimes(latencyState.reset())} disabled={times.length === 0 || isWaiting}>
         <RotateCcw className="h-4 w-4" /> Reiniciar
       </Button>
 

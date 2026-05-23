@@ -12,10 +12,10 @@
 | 2 — CRUD estudiantes/sesiones + calendario | DONE | `02de214` |
 | 3 — Registro de mediciones en sesión | DONE | `6142760` |
 | 3.5 — Reparaciones sobre Fase 3 | DONE | `4e8c524` |
-| 4 — Sesiones reanudables + paralelas | TODO | — |
+| 4 — Sesiones reanudables + paralelas | DONE | `a6afb7a` |
 | 5 — Reportes (vistas + CSV) | TODO (sólo placeholder) | — |
 | 6 — Export PDF + gráficos avanzados | TODO | — |
-| 7 — Onboarding + multi-miembro | TODO (stub) | — |
+| 7 — Onboarding + multi-miembro | EN CURSO (7.1/7.2 DONE `e6b3901`) | — |
 | 8 — Hardening (tests, lint en CI, deps) | TODO | — |
 
 ---
@@ -43,13 +43,13 @@ Bugs/huecos detectados sobre lo que ya está commiteado. Hay que cerrarlos antes
 
 El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessionId])`. Hoy no se usa.
 
-- [ ] **4.1.** Server actions `saveProgress(behaviorMethodId, sessionId, data)` y `loadProgress(...)` con upsert.
-- [ ] **4.2.** Hook `useMeasurementProgress` (debounce ~5 s + `onBeforeUnload`) en `src/components/measure/_hooks/`.
-- [ ] **4.3.** Integrar el hook en los 7 pads cronometrables (FREQUENCY, DURATION, LATENCY, INTENSITY, OPPORTUNITY, TEMPORAL_SAMPLING, EVENT_SAMPLING).
-- [ ] **4.4.** Al abrir `/sessions/[id]/measure`, hidratar estado inicial desde `MeasurementProgress.data`.
-- [ ] **4.5.** Marcar `completedAt` cuando se guarda el `MeasurementResult` final (limpiar el progreso correspondiente).
-- [ ] **4.6.** **Mediciones paralelas:** convertir `MeasureShell` a layout de grilla multi-pad (estado independiente por pad) en lugar del único activo. Mantener "Finalizar sesión" global.
-- [ ] **4.7.** Tests unitarios del reducer/estado de cada pad (sin DB).
+- [x] **4.1.** Server actions `saveProgress(behaviorMethodId, sessionId, data)` y `loadProgress(...)` con upsert.
+- [x] **4.2.** Hook `useMeasurementProgress` (debounce ~5 s + `onBeforeUnload`) en `src/components/measure/_hooks/`.
+- [x] **4.3.** Integrar el hook en los 7 pads cronometrables (FREQUENCY, DURATION, LATENCY, INTENSITY, OPPORTUNITY, TEMPORAL_SAMPLING, EVENT_SAMPLING).
+- [x] **4.4.** Al abrir `/sessions/[id]/measure`, hidratar estado inicial desde `MeasurementProgress.data`. — Cubierto por el hook (`onHydrate`).
+- [x] **4.5.** Marcar `completedAt` cuando se guarda el `MeasurementResult` final (limpiar el progreso correspondiente). — Vía `clear()` desde cada pad.
+- [x] **4.6.** **Mediciones paralelas:** convertir `MeasureShell` a layout de grilla multi-pad (estado independiente por pad) en lugar del único activo. Mantener "Finalizar sesión" global.
+- [x] **4.7.** Tests unitarios del reducer/estado de cada pad (sin DB). — `tests/pad-state.test.ts` (18 tests).
 
 **Criterio de cierre:** cerrar pestaña en medio de una medición y volver al rato → estado restaurado. 2 pads abiertos a la vez funcionan sin pisarse.
 
