@@ -28,7 +28,6 @@ export async function requireOrganization() {
   const user = await requireUser();
   const membership = user.memberships[0];
   if (!membership) {
-    // No org yet — we'll route to onboarding in Fase 7. For now, redirect to a stub.
     redirect("/onboarding");
   }
   return {

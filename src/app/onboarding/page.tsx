@@ -1,22 +1,26 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireUser } from "@/lib/auth-helpers";
+import { OrganizationForm } from "./organization-form";
 
-export default function OnboardingPage() {
+export default async function OnboardingPage() {
+  const user = await requireUser();
+  if (user.memberships.length > 0) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sin organización</CardTitle>
+          <CardTitle>Crea tu organización</CardTitle>
           <CardDescription>
-            Tu cuenta no pertenece a ninguna organización. Esta pantalla se completará en Fase 7
-            (invitaciones y creación de orgs adicionales).
+            Para empezar a registrar estudiantes y sesiones, dale un nombre a tu organización.
+            Quedarás como propietario (OWNER) y podrás invitar al equipo más adelante.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/">
-            <Button>Volver al inicio</Button>
-          </Link>
+          <OrganizationForm />
         </CardContent>
       </Card>
     </div>

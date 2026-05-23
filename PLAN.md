@@ -27,7 +27,7 @@ Bugs/huecos detectados sobre lo que ya está commiteado. Hay que cerrarlos antes
 - [x] **R1. Detalle de sesión no muestra ABC / Anecdotal / EventSampling.** Se guardan vía server actions pero `src/app/(app)/sessions/[id]/page.tsx` sólo renderiza `results`, `opportunityResults`, `temporalSamplingResults`. Decisión de diseño previa: agregar `sessionId String?` (nullable) a `ABCRecord`, `AnecdotalRecord`, `EventSampling` con migración aditiva y filtrar por él. Actualizar las 3 server actions para persistirlo.
 - [x] **R2. `getSession()` en `src/server/queries.ts` debe incluir los nuevos registros** (ABC/Anecdotal/EventSampling filtrados por `sessionId`) y devolverlos tipados.
 - [x] **R3. Conteo `totalMeasurements`** en detalle de sesión hoy ignora ABC/Anecdotal/EventSampling. Ajustar tras R1.
-- [ ] **R4. `auth-helpers.requireOrganization`** redirige a `/onboarding` que es un stub → usuario nuevo queda atrapado. Mantener redirección, pero implementar el onboarding (ver Fase 7.1).
+- [x] **R4. `auth-helpers.requireOrganization`** redirige a `/onboarding` que es un stub → usuario nuevo queda atrapado. Mantener redirección, pero implementar el onboarding (ver Fase 7.1). — Resuelto junto con 7.1/7.2.
 - [x] **R5. Smoke test sólo cubre Fase 2.** Ampliar `scripts/smoke-test.ts` con `MeasurementResult` + `OpportunityResult` + `ABCRecord` para validar contratos de Fase 3.
 - [x] **R6. `prisma/schema.prisma`**: pasar `behaviorName` desde `MeasureShell` a `ABCForm` y `AnecdotalForm` para que quede registrado en el row. ANECDOTAL y ABC pueden tener `BehaviorMethod` — diseño intencional documentado.
 - [x] **R7. `cn` / utils**: verificar que no haya helpers duplicados en `src/lib/utils.ts`. — Limpio.
@@ -83,8 +83,8 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 ## Fase 7 — Onboarding + multi-miembro
 
-- [ ] **7.1. Onboarding real:** form en `/onboarding` que crea `Organization` + `Membership(role=OWNER)` en una transacción. Slug auto-derivado y único.
-- [ ] **7.2.** Borrar el copy "Fase 7" de `auth-helpers.ts` y `onboarding/page.tsx` una vez implementado.
+- [x] **7.1. Onboarding real:** form en `/onboarding` que crea `Organization` + `Membership(role=OWNER)` en una transacción. Slug auto-derivado y único.
+- [x] **7.2.** Borrar el copy "Fase 7" de `auth-helpers.ts` y `onboarding/page.tsx` una vez implementado.
 - [ ] **7.3. Modelo `Invitation`** (`email`, `organizationId`, `role`, `token`, `expiresAt`, `acceptedAt?`). Migración.
 - [ ] **7.4.** Server action `inviteMember(email, role)` (solo OWNER/ADMIN) → genera token + (opcional) envía email vía Resend.
 - [ ] **7.5.** Página `/invite/[token]` que: si hay sesión, crea Membership; si no, redirige a signup con el email preasignado y persiste el token en cookie.
