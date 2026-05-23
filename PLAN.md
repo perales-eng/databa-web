@@ -20,7 +20,7 @@
 | 9 — PWA (instalable Android/iOS/Mac) | DONE | `d82bf97` |
 | 10 — Deploy prep (Vercel + Neon) | DONE (manual deploy pendiente) | `10b5e4a` |
 | 11 — Invitaciones por email (Resend) | DONE (key opcional) | `0f2563b` |
-| 12 — Hardening (rate limit + Sentry + smoke final) | DONE | (pendiente commit) |
+| 12 — Hardening (rate limit + Sentry + smoke final) | DONE | `1c6c837` |
 
 ---
 
