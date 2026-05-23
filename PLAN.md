@@ -16,7 +16,7 @@
 | 5 — Reportes (vistas + CSV) | DONE | `381fa88` (+ `f4b5931`) |
 | 6 — Export PDF + gráficos avanzados | DONE | `465a8fc` |
 | 7 — Onboarding + multi-miembro | DONE | `e6b3901`, `54ef29f`, `e1fe655` |
-| 8 — Hardening (tests, lint en CI, deps) | DONE | (pendiente commit) |
+| 8 — Hardening (tests, lint en CI, deps) | DONE | `9e8bc3d` |
 
 ---
 
