@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ function localDateTime(date: Date): string {
 
 export function SessionForm({ studentId, initial }: Props) {
   const router = useRouter();
+  const search = useSearchParams();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
@@ -67,11 +68,16 @@ export function SessionForm({ studentId, initial }: Props) {
     router.refresh();
   }
 
-  const [defaultDate] = React.useState<string>(() =>
-    initial?.sessionDate
-      ? localDateTime(initial.sessionDate)
-      : localDateTime(new Date(Date.now() + 60 * 60 * 1000)),
-  );
+  const [defaultDate] = React.useState<string>(() => {
+    if (initial?.sessionDate) return localDateTime(initial.sessionDate);
+    // ?date=YYYY-MM-DDTHH:mm permite pre-llenar la fecha (ej. desde el calendario).
+    const fromQuery = search.get("date");
+    if (fromQuery) {
+      const d = new Date(fromQuery);
+      if (!Number.isNaN(d.getTime())) return localDateTime(d);
+    }
+    return localDateTime(new Date(Date.now() + 60 * 60 * 1000));
+  });
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">

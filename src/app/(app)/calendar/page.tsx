@@ -1,5 +1,6 @@
 import { requireOrganization } from "@/lib/auth-helpers";
 import { listSessionsInRange } from "@/server/queries";
+import { db } from "@/lib/db";
 import { CalendarView } from "./calendar-view";
 
 export default async function CalendarPage() {
@@ -12,7 +13,14 @@ export default async function CalendarPage() {
   const to = new Date(now);
   to.setDate(to.getDate() + 60);
 
-  const sessions = await listSessionsInRange(organization.id, from, to);
+  const [sessions, students] = await Promise.all([
+    listSessionsInRange(organization.id, from, to),
+    db.student.findMany({
+      where: { organizationId: organization.id, deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, color: true },
+    }),
+  ]);
 
   const events = sessions.map((s) => {
     const start = s.sessionDate;
@@ -32,10 +40,10 @@ export default async function CalendarPage() {
       <header className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sesiones programadas — clic en un evento para abrir su detalle.
+          Clic en un evento para abrir su detalle, o clic en un día/franja vacía para crear una sesión nueva.
         </p>
       </header>
-      <CalendarView events={events} />
+      <CalendarView events={events} students={students} />
     </div>
   );
 }
