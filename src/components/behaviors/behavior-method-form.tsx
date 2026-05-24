@@ -18,7 +18,7 @@ const METHOD_OPTIONS: { value: MeasurementMethodType; label: string }[] = [
   { value: "INTENSITY", label: "Intensidad" },
   { value: "PERCENTAGE_OPPORTUNITY", label: "Oportunidades (%)" },
   { value: "TEMPORAL_SAMPLING", label: "Muestreo temporal" },
-  { value: "EVENT_SAMPLING", label: "Event sampling" },
+  { value: "EVENT_SAMPLING", label: "Registro de eventos" },
   { value: "ANECDOTAL", label: "Anecdótico" },
   { value: "ABC", label: "ABC" },
 ];

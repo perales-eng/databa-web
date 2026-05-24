@@ -182,7 +182,7 @@ function methodLabel(t: string) {
       INTENSITY: "Intensidad",
       TEMPORAL_SAMPLING: "Muestreo temporal",
       PERCENTAGE_OPPORTUNITY: "Oportunidades",
-      EVENT_SAMPLING: "Event sampling",
+      EVENT_SAMPLING: "Registro de eventos",
       ANECDOTAL: "Anecdótico",
       ABC: "ABC",
     }[t] ?? t

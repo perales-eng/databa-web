@@ -53,7 +53,7 @@ const METHOD_LABELS: Record<string, string> = {
   INTENSITY: "Intensidad",
   PERCENTAGE_OPPORTUNITY: "Oportunidades",
   TEMPORAL_SAMPLING: "Muestreo temporal",
-  EVENT_SAMPLING: "Event sampling",
+  EVENT_SAMPLING: "Registro de eventos",
   ANECDOTAL: "Anecdótico",
   ABC: "ABC",
 };
@@ -234,8 +234,28 @@ function StudentTab({
                 <Badge variant="outline">{t.length} muestreo</Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <MultiTrendChart series={trendByMethodSeries(m)} height={180} />
+            <CardContent className="space-y-4">
+              {m.length === 0 && o.length === 0 && t.length === 0 ? (
+                <EmptyState text="Sin datos cuantitativos para graficar." />
+              ) : (
+                <>
+                  {m.length > 0 && (
+                    <MultiTrendChart series={trendByMethodSeries(m)} height={180} />
+                  )}
+                  {o.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">% éxito · oportunidades</p>
+                      <TrendChart data={trendOpportunity(o)} variant="bar" height={160} yLabel="%" />
+                    </div>
+                  )}
+                  {t.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">% intervalos · muestreo temporal</p>
+                      <TrendChart data={trendTemporal(t)} variant="bar" height={160} yLabel="%" />
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         );

@@ -67,7 +67,7 @@ const METHOD_LABELS: Record<string, string> = {
   INTENSITY: "Intensidad",
   PERCENTAGE_OPPORTUNITY: "Oportunidades",
   TEMPORAL_SAMPLING: "Muestreo temporal",
-  EVENT_SAMPLING: "Event sampling",
+  EVENT_SAMPLING: "Registro de eventos",
   ANECDOTAL: "Anecdótico",
   ABC: "ABC",
 };

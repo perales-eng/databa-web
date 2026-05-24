@@ -40,7 +40,7 @@ const METHOD_LABELS: Record<MeasurementMethodType, string> = {
   INTENSITY: "Intensidad",
   PERCENTAGE_OPPORTUNITY: "Oportunidades",
   TEMPORAL_SAMPLING: "Muestreo temporal",
-  EVENT_SAMPLING: "Event sampling",
+  EVENT_SAMPLING: "Registro de eventos",
   ANECDOTAL: "Anecdótico",
   ABC: "ABC",
 };

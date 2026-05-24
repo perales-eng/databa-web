@@ -133,3 +133,21 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 - Next 16: `params` y `searchParams` son `Promise` — respetar ese patrón.
 - No introducir dependencias nuevas sin justificación en el PR.
 - Antes de cerrar fase: `typecheck`, `lint`, `test`, smoke test, y manual check del flujo principal.
+
+---
+
+## Pendientes / backlog
+
+### Reportes — vista unificada por estudiante (post-A)
+
+**Contexto:** La pestaña "Por estudiante" hoy apila charts separados por tipo de dato (mediciones, oportunidades, muestreo temporal). Funciona — todos los métodos aparecen — pero impide ver correlaciones temporales entre series de tipos distintos.
+
+**Propuesta B:** unificar todo en un solo `MultiTrendChart` por estudiante, con normalización (z-score, % del máximo histórico, o doble eje Y) para que series con unidades incompatibles (`occurrences`, `seconds`, `scale_1_5`, `%`) puedan superponerse sin engañar visualmente.
+
+**Alcance estimado:**
+- Extender `trendByMethodSeries` en `src/lib/reports/aggregations.ts` para aceptar también `opportunities` y `temporal` como series adicionales.
+- Decidir estrategia de normalización (probablemente % del máximo por serie o doble eje).
+- Ajustar `MultiTrendChart` para soportar la estrategia elegida.
+- Mantener la opción de "vista apilada" como fallback o toggle.
+
+**Cuándo encarar:** cuando uso real del reporte muestre que necesitamos ver correlaciones entre series, no antes — la decisión de normalización es difícil sin caso concreto.

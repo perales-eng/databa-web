@@ -22,7 +22,7 @@ const METHOD_LABELS: Record<string, string> = {
   INTENSITY: "Intensidad",
   PERCENTAGE_OPPORTUNITY: "Oportunidades",
   TEMPORAL_SAMPLING: "Muestreo temporal",
-  EVENT_SAMPLING: "Event sampling",
+  EVENT_SAMPLING: "Registro de eventos",
   ANECDOTAL: "Anecdótico",
   ABC: "ABC",
 };
@@ -239,7 +239,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               {session.eventSamplings.length > 0 && (
                 <section>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Event sampling
+                    Registro de eventos
                   </h3>
                   <ul className="divide-y">
                     {session.eventSamplings.map((r) => {
@@ -254,7 +254,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
-                            <Badge variant="secondary">Event sampling</Badge>
+                            <Badge variant="secondary">Registro de eventos</Badge>
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {format(r.measurementDate, "HH:mm")}
                             </p>
