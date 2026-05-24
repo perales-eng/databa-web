@@ -112,26 +112,45 @@ Vercel toma el código de GitHub y lo pone online.
 
 Esto es lo más importante. Son las "claves" que la app necesita para conectarse a la base de datos y manejar el login.
 
-Bajá en la misma pantalla hasta donde dice **"Environment Variables"**. Vas a agregar **TRES** entradas:
+> ⚠️ **Los nombres deben ser EXACTOS** (mayúsculas, guion bajo, sin espacios). La forma más segura es **copiar y pegar** el nombre desde acá:
+>
+> - `DATABASE_URL`
+> - `AUTH_SECRET`
+> - `AUTH_URL`
+>
+> Variantes parecidas (`AUTH_KEY`, `AUTHSECRET`, `auth_secret`, etc.) **NO funcionan** — la app no las encuentra y vas a tener errores raros tipo "page not found" en todos los botones.
 
-**Entrada 1: DATABASE_URL**
-- Key: `DATABASE_URL`
-- Value: pegá el link que copiaste de Neon en el paso 2.1.
-- Clic en **"Add"** (o tildá "Add another" si te lo pide).
+Bajá en la misma pantalla hasta donde dice **"Environment Variables"**. Vas a agregar **TRES** entradas. En cada una asegurate que los **3 environments** estén tildados: ☑ Production, ☑ Preview, ☑ Development.
 
-**Entrada 2: AUTH_SECRET**
+**Entrada 1: `DATABASE_URL`**
+- Key: `DATABASE_URL` (copiá y pegá esto)
+- Value: pegá el link que copiaste de Neon en el paso 2.1 (el "Pooled connection", empieza con `postgresql://...`).
+- Clic en **"Save"** (o "Add Another" si querés cargar la siguiente sin guardar todavía).
 
-Necesitás generar una clave aleatoria larga. La forma más fácil:
+**Entrada 2: `AUTH_SECRET`**
+
+Es una clave aleatoria que usa la app para firmar las cookies de login. Generá una así:
 
 1. Abrí [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32) en otra pestaña.
-2. Copiá la cadena larga de letras/números/símbolos que aparece.
+2. Vas a ver una cadena larga de letras/números/símbolos. Copiala (Cmd+A → Cmd+C).
 3. Volvé a Vercel.
-- Key: `AUTH_SECRET`
-- Value: pegá la cadena generada.
+- Key: `AUTH_SECRET` (copiá y pegá esto, **NO** uses `AUTH_KEY`, `SECRET`, ni nada parecido)
+- Value: pegá la cadena del paso 2.
 
-**Entrada 3: AUTH_URL** (la vamos a ajustar después, por ahora pongo un placeholder)
+**Entrada 3: `AUTH_URL`**
+
+Acá necesitás el dominio que te asignó Vercel. Si todavía no deployaste, **no lo conocés** — por eso este paso parece raro. Tenés dos opciones:
+
+**Opción A (recomendada): hacer el deploy primero, después agregar `AUTH_URL`**
+
+1. **Saltate esta entrada por ahora**.
+2. Hacé el paso 3.4 (Deploy) con solo las primeras 2 variables.
+3. El primer deploy probablemente falle al loguear, pero ya vas a tener el dominio. Volvé acá y agregá `AUTH_URL` con el dominio real.
+
+**Opción B: agregarla con un valor temporal y editarla después**
+
 - Key: `AUTH_URL`
-- Value: `https://placeholder.vercel.app` (lo ajustamos en el paso 3.5)
+- Value: `https://placeholder.vercel.app` (la vamos a corregir en el paso 3.5)
 
 ### 3.4. Deploy
 
@@ -214,7 +233,7 @@ Hoy, cuando invitás a alguien a tu organización, la app genera un link y vos t
 
 Listo. Ahora cuando invites a alguien, va a llegarles un email con el link de invitación. **El link copiable también sigue apareciendo** por si el email cae en spam.
 
-> 🛟 Sin un dominio propio verificado en Resend, los emails salen desde `onboarding@resend.dev`. Funciona, pero algunos servidores de email pueden marcarlos como spam. Si querés que salgan desde `noreply@tu-dominio.com`, hay que verificar el dominio en Resend — proceso aparte de ~10 min.
+> � Sin un dominio propio verificado en Resend, los emails salen desde `onboarding@resend.dev`. Funciona, pero algunos servidores de email pueden marcarlos como spam. Si querés que salgan desde `noreply@tu-dominio.com`, hay que verificar el dominio en Resend — proceso aparte de ~10 min.
 
 ---
 
@@ -262,24 +281,57 @@ Andá a [vercel.com/dashboard](https://vercel.com/dashboard), entrá a tu proyec
 
 ## Problemas comunes
 
+### "Cualquier botón del home me tira a /dashboard con 'This page couldn't be found'"
+
+**Causa**: `AUTH_SECRET` no está bien configurada (lo más común: mal nombrada, ej. `AUTH_KEY` en vez de `AUTH_SECRET`). Sin esa variable, la app no puede manejar las sesiones y todo el flujo de login se rompe.
+
+**Verificación**: en Vercel → Logs (pestaña arriba o Observability → Logs), buscá una línea que diga:
+```
+[auth][error] MissingSecret: Please define a `secret`
+```
+Si la ves, confirmaste el diagnóstico.
+
+**Solución**:
+1. Settings → Environment Variables.
+2. Mirá la lista de variables guardadas. Tiene que estar **exactamente** `AUTH_SECRET` (no `AUTH_KEY`, no `SECRET`, no `NEXTAUTH_SECRET`).
+3. Si está mal nombrada: copiá el valor → borrá la variable mal nombrada → creá una nueva con el nombre `AUTH_SECRET` → pegá el valor → Save.
+4. Tildá los 3 environments (Production, Preview, Development).
+5. **Deployments → ⋯ → Redeploy** del deploy más reciente (sin "Use existing Build Cache").
+6. Esperá a que termine y probá en una ventana incógnita nueva.
+
 ### "El deploy falla en el build"
 
-Mirá el log que aparece en Vercel. El error más común es:
-- **"AUTH_SECRET is not set"**: te olvidaste el env var del paso 3.3.
-- **"Can't reach database server"**: la `DATABASE_URL` está mal copiada. Volvé a copiarla de Neon y pegala en Vercel Settings → Environment Variables → editar la fila → Save → Redeploy.
+Mirá el log que aparece en Vercel. Errores comunes:
+- **"AUTH_SECRET is not set"** → falta o está mal nombrada (ver arriba).
+- **"Can't reach database server"** → la `DATABASE_URL` está mal copiada. Volvé a copiarla de Neon y pegala en Vercel Settings → Environment Variables → editar la fila → Save → Redeploy.
+- **"prisma migrate deploy failed"** → la URL de Neon "pooled" a veces no acepta migraciones. Cambialo temporalmente por la "direct connection" de Neon, redeploy, después podés volver a "pooled".
 
 ### "La app abre pero al loguearme me tira error"
 
-Es casi seguro que `AUTH_URL` no coincide con el dominio actual. Andá a Settings → Environment Variables y verificá que el valor empiece con `https://` y sea exactamente el dominio que ves en el navegador.
+Es casi seguro que `AUTH_URL` no coincide con el dominio actual. Andá a Settings → Environment Variables y verificá que el valor:
+- Empiece con `https://` (no `http://`)
+- Sea **exactamente** el dominio que ves en el navegador
+- **No termine con `/`** (sin barra al final)
 
 ### "Demoró 5 segundos en cargar la primera vez"
 
 Normal en el plan gratis. Neon "duerme" la base de datos cuando no la usás por 5 minutos. La primera request la despierta (tarda ~1-2s), las siguientes son rápidas. Si te molesta, hay que pasar a Neon Pro ($19/mes).
 
+### "Cambié un env var pero el problema persiste"
+
+Los environment variables **solo se aplican a deploys NUEVOS**. Después de cambiar uno tenés que ir a Deployments → ⋯ → Redeploy (sin "Use existing Build Cache"). El deploy actual sigue corriendo con los valores viejos hasta que lo redeployás.
+
+### "Probé en incógnito pero sigue igual"
+
+Algunos navegadores (DuckDuckGo, Brave) no limpian cookies en modo privado tan agresivamente como Chrome. Si la cookie vieja persiste, probá:
+- En el mismo navegador: Settings → Privacy → borrar cookies de `tu-app.vercel.app` específicamente.
+- O probá desde **Chrome en incógnito** (Cmd+Shift+N) — Chrome sí limpia todo entre sesiones incógnitas.
+
 ### "Algo se rompió y no sé qué"
 
-1. Andá a Vercel → tu proyecto → pestaña **"Logs"** (o "Functions" → "Logs").
+1. Andá a Vercel → tu proyecto → pestaña **"Logs"** (o "Observability → Logs").
 2. Vas a ver los errores en tiempo real. Compartilos si necesitás ayuda.
+3. También podés filtrar por **Runtime Logs** (errores del servidor cuando se carga una página) o **Build Logs** (errores al compilar).
 
 ---
 
