@@ -138,6 +138,14 @@ El schema ya tiene `MeasurementProgress` con `@@unique([behaviorMethodId, sessio
 
 ## Pendientes / backlog
 
+### Control de acceso — modo invitación obligatoria
+
+**Estado actual:** registro público cerrado vía feature flag `SIGNUPS_ENABLED` (opción A — implementada). Detalles y alternativas en [`docs/access-control.md`](./docs/access-control.md).
+
+**Pendiente (opción C):** migrar a "invitación obligatoria" sin signup público cuando se confirme el modelo de acceso final. Implica quitar `/signup`, validar end-to-end el flujo `/invite/[token]`, y posiblemente sumar UI de gestión de invitaciones (lista, expiración, revocar).
+
+**Cuándo encararlo:** cuando haya usuarios reales sostenidos y un feature flag deje de ser suficiente.
+
 ### Reportes — vista unificada por estudiante (post-A)
 
 **Contexto:** La pestaña "Por estudiante" hoy apila charts separados por tipo de dato (mediciones, oportunidades, muestreo temporal). Funciona — todos los métodos aparecen — pero impide ver correlaciones temporales entre series de tipos distintos.

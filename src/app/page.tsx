@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { signupsEnabled } from "@/lib/feature-flags";
 
 export default function LandingPage() {
+  const open = signupsEnabled();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -14,9 +17,11 @@ export default function LandingPage() {
             <Link href="/login">
               <Button variant="ghost">Iniciar sesión</Button>
             </Link>
-            <Link href="/signup">
-              <Button>Crear cuenta</Button>
-            </Link>
+            {open ? (
+              <Link href="/signup">
+                <Button>Crear cuenta</Button>
+              </Link>
+            ) : null}
           </nav>
         </div>
       </header>
@@ -34,15 +39,22 @@ export default function LandingPage() {
               Funciona offline durante tus sesiones.
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/signup">
-                <Button size="lg">Empezar gratis</Button>
-              </Link>
+              {open ? (
+                <Link href="/signup">
+                  <Button size="lg">Empezar gratis</Button>
+                </Link>
+              ) : null}
               <Link href="/login">
-                <Button size="lg" variant="outline">
-                  Ya tengo cuenta
+                <Button size="lg" variant={open ? "outline" : "default"}>
+                  {open ? "Ya tengo cuenta" : "Iniciar sesión"}
                 </Button>
               </Link>
             </div>
+            {!open ? (
+              <p className="mt-6 text-sm text-muted-foreground">
+                El registro público está cerrado por ahora. Pedí una invitación si necesitás acceso.
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -68,7 +80,7 @@ export default function LandingPage() {
 const features = [
   {
     title: "9 métodos de medición",
-    desc: "Frecuencia, duración, latencia, intensidad, muestreo temporal, oportunidades, ABC, anecdóticos, event sampling.",
+    desc: "Frecuencia, duración, latencia, intensidad, muestreo temporal, oportunidades, ABC, anecdóticos, registro de eventos.",
   },
   { title: "Mediciones paralelas", desc: "Ejecutá varias mediciones a la vez sin perder datos." },
   { title: "Offline en sesión", desc: "Tus cronómetros siguen funcionando aunque pierdas conexión." },

@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { signupsEnabled } from "@/lib/feature-flags";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -14,6 +15,9 @@ const schema = z.object({
 export type SignupResult = { ok: true } | { ok: false; error: string };
 
 export async function signupAction(formData: FormData): Promise<SignupResult> {
+  if (!signupsEnabled()) {
+    return { ok: false, error: "El registro está deshabilitado. Pedí acceso al administrador." };
+  }
   const parsed = schema.safeParse({
     name: formData.get("name"),
     orgName: formData.get("orgName"),

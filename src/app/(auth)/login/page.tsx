@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { signupsEnabled } from "@/lib/feature-flags";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
+  const open = signupsEnabled();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
@@ -15,12 +18,14 @@ export default function LoginPage() {
           <Suspense fallback={<div className="h-48" />}>
             <LoginForm />
           </Suspense>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            ¿No tenés cuenta?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-              Crear cuenta
-            </Link>
-          </p>
+          {open ? (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              ¿No tenés cuenta?{" "}
+              <Link href="/signup" className="font-medium text-primary hover:underline">
+                Crear cuenta
+              </Link>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </div>
