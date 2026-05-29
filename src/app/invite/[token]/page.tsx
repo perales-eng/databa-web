@@ -2,9 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/marketing/auth-shell";
+import { ArrowRight, Kicker } from "@/components/marketing/brand";
 import { AcceptInvitationButton } from "./accept-button";
+
+const linkBtn =
+  "group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14px] font-medium text-cream transition hover:bg-teal-bright hover:text-ink";
+const outlineBtn =
+  "group inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white/70 px-6 py-3.5 text-[14px] font-medium text-ink transition hover:border-teal-deep hover:bg-white";
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -15,58 +20,93 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     include: { organization: { select: { name: true } } },
   });
 
-  const card = (title: string, description: string, body?: React.ReactNode) => (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        {body ? <CardContent>{body}</CardContent> : null}
-      </Card>
-    </div>
-  );
-
   if (!invitation) {
-    return card("Invitación no válida", "El link de invitación no existe o fue revocado.", (
-      <Link href="/"><Button variant="outline">Volver al inicio</Button></Link>
-    ));
+    return (
+      <AuthShell
+        kicker="Invitación · Error"
+        title={
+          <>
+            Este link <span className="italic text-teal-deep">ya no sirve.</span>
+          </>
+        }
+        subtitle="No encontramos la invitación. Puede que haya sido revocada o que el link esté mal copiado."
+      >
+        <Link href="/" className={outlineBtn}>← Volver al inicio</Link>
+      </AuthShell>
+    );
   }
+
   if (invitation.acceptedAt) {
-    return card("Ya fue aceptada", "Esta invitación ya fue usada. Iniciá sesión para acceder a la organización.", (
-      <Link href="/login"><Button>Iniciar sesión</Button></Link>
-    ));
+    return (
+      <AuthShell
+        kicker="Invitación · Usada"
+        title={
+          <>
+            Esta invitación <span className="italic text-teal-deep">ya fue aceptada.</span>
+          </>
+        }
+        subtitle="Iniciá sesión con tu cuenta para acceder a la organización."
+      >
+        <Link href="/login" className={linkBtn}>Iniciar sesión <ArrowRight /></Link>
+      </AuthShell>
+    );
   }
+
   if (invitation.expiresAt < new Date()) {
-    return card("Invitación vencida", "Pedile al administrador que te envíe una nueva.", (
-      <Link href="/"><Button variant="outline">Volver al inicio</Button></Link>
-    ));
+    return (
+      <AuthShell
+        kicker="Invitación · Vencida"
+        title={
+          <>
+            El link <span className="italic text-teal-deep">expiró.</span>
+          </>
+        }
+        subtitle="Pedile al administrador de la organización que te envíe una nueva invitación."
+      >
+        <Link href="/" className={outlineBtn}>← Volver al inicio</Link>
+      </AuthShell>
+    );
   }
 
   if (!session?.user) {
     const callback = `/invite/${token}`;
-    return card(
-      `Te invitaron a ${invitation.organization.name}`,
-      `Iniciá sesión o creá una cuenta con el email ${invitation.email} para aceptar.`,
-      (
-        <div className="flex gap-2">
-          <Link href={`/login?from=${encodeURIComponent(callback)}`} className="flex-1">
-            <Button className="w-full">Iniciar sesión</Button>
+    return (
+      <AuthShell
+        kicker={`Invitación · ${invitation.role.toLowerCase()}`}
+        title={
+          <>
+            Te invitaron a <span className="italic text-teal-deep">{invitation.organization.name}</span>.
+          </>
+        }
+        subtitle={
+          <>
+            Iniciá sesión o creá una cuenta con{" "}
+            <span className="font-mono text-[14px] text-ink">{invitation.email}</span> para aceptar.
+          </>
+        }
+        aside={
+          <div className="rounded-2xl border border-ink/10 bg-white/70 p-6 backdrop-blur lg:mt-24">
+            <Kicker>Próximo paso</Kicker>
+            <p className="mt-3 font-display text-[20px] font-light leading-tight tracking-[-0.015em] text-ink">
+              Una vez dentro, vas a poder cargar estudiantes, registrar sesiones y compartir reportes.
+            </p>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link href={`/login?from=${encodeURIComponent(callback)}`} className={`${linkBtn} flex-1`}>
+            Iniciar sesión <ArrowRight />
           </Link>
-          <Link href="/signup" className="flex-1">
-            <Button variant="outline" className="w-full">Crear cuenta</Button>
-          </Link>
+          <Link href="/signup" className={`${outlineBtn} flex-1`}>Crear cuenta</Link>
         </div>
-      ),
+      </AuthShell>
     );
   }
 
-  // Sesión activa — si el email coincide, aceptar directamente. Si no, ofrecer aceptar igual.
   const sessionEmail = session.user.email?.toLowerCase() ?? "";
   const matches = sessionEmail === invitation.email.toLowerCase();
 
   if (matches) {
-    // Auto-aceptar y redirigir.
     const existing = await db.membership.findFirst({
       where: { userId: session.user.id, organizationId: invitation.organizationId },
     });
@@ -74,23 +114,43 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       await db.invitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
       redirect("/dashboard");
     }
-    return card(
-      `Aceptar invitación a ${invitation.organization.name}`,
-      `Vas a unirte como ${invitation.role.toLowerCase()}.`,
-      <AcceptInvitationButton token={token} />,
+    return (
+      <AuthShell
+        kicker={`Rol asignado · ${invitation.role.toLowerCase()}`}
+        title={
+          <>
+            Sumate a <span className="italic text-teal-deep">{invitation.organization.name}.</span>
+          </>
+        }
+        subtitle="Vas a poder ver y gestionar los datos compartidos por la organización."
+      >
+        <AcceptInvitationButton token={token} />
+      </AuthShell>
     );
   }
 
-  return card(
-    `Invitación para ${invitation.email}`,
-    `Estás conectado como ${sessionEmail}, pero la invitación está dirigida a otra dirección. Podés aceptar igual o iniciar sesión con la cuenta correcta.`,
-    (
+  return (
+    <AuthShell
+      kicker="Invitación · Otro email"
+      title={
+        <>
+          Esta invitación es para{" "}
+          <span className="italic text-teal-deep">{invitation.email}</span>.
+        </>
+      }
+      subtitle={
+        <>
+          Estás conectado como <span className="font-mono text-[14px] text-ink">{sessionEmail}</span>.
+          Podés aceptarla igual o cambiar de cuenta.
+        </>
+      }
+    >
       <div className="space-y-3">
         <AcceptInvitationButton token={token} />
-        <Link href={`/login?from=${encodeURIComponent(`/invite/${token}`)}`}>
-          <Button variant="outline" className="w-full">Iniciar sesión con otra cuenta</Button>
+        <Link href={`/login?from=${encodeURIComponent(`/invite/${token}`)}`} className={`${outlineBtn} w-full`}>
+          Iniciar sesión con otra cuenta
         </Link>
       </div>
-    ),
+    </AuthShell>
   );
 }

@@ -51,14 +51,18 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Hola, {user.name?.split(" ")[0] ?? "terapeuta"}.
+      <header className="mb-10">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Inicio · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
+        </span>
+        <h1 className="mt-3 font-display text-[clamp(2.2rem,4.2vw,3.4rem)] font-light leading-[1] tracking-[-0.02em]">
+          Hola, <span className="italic text-teal-deep">{user.name?.split(" ")[0] ?? "terapeuta"}.</span>
         </h1>
-        <p className="mt-1 text-muted-foreground">
-          Organización: <span className="font-medium text-foreground">{organization.name}</span>
+        <p className="mt-3 text-[15px] text-ink/65">
+          Trabajando en{" "}
+          <span className="font-medium text-ink">{organization.name}</span>.
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <InstallPrompt />
         </div>
       </header>
@@ -153,7 +157,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <h2 className="mb-4 text-lg font-semibold">Secciones</h2>
+      <h2 className="mb-4 font-display text-[24px] font-light tracking-[-0.015em] text-ink">Secciones</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <Link key={c.href} href={c.href}>

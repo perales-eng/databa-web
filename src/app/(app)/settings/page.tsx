@@ -43,7 +43,14 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+      <header>
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Preferencias · Equipo
+        </span>
+        <h1 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] font-light leading-[1.05] tracking-[-0.02em]">
+          Configuración.
+        </h1>
+      </header>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

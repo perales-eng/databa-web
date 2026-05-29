@@ -3,9 +3,13 @@
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  EditorialButton,
+  EditorialError,
+  EditorialField,
+  editorialInputClass,
+} from "@/components/marketing/auth-shell";
+import { ArrowRight } from "@/components/marketing/brand";
 import { signupAction } from "./actions";
 
 export function SignupForm() {
@@ -39,34 +43,33 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nombre completo</Label>
-        <Input id="name" name="name" autoComplete="name" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="orgName">Nombre de tu organización / clínica</Label>
-        <Input id="orgName" name="orgName" placeholder="Mi consulta" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
-        <Input
+    <form onSubmit={onSubmit} className="space-y-5">
+      <EditorialField id="name" label="Nombre completo">
+        <input id="name" name="name" autoComplete="name" required className={editorialInputClass} placeholder="Lic. Marta Pérez" />
+      </EditorialField>
+      <EditorialField id="orgName" label="Organización / clínica" hint="Podrás cambiar el nombre más tarde.">
+        <input id="orgName" name="orgName" required className={editorialInputClass} placeholder="Centro ABA San Martín" />
+      </EditorialField>
+      <EditorialField id="email" label="Email">
+        <input id="email" name="email" type="email" autoComplete="email" required className={editorialInputClass} placeholder="tu@clinica.com" />
+      </EditorialField>
+      <EditorialField id="password" label="Contraseña" hint="Mínimo 6 caracteres.">
+        <input
           id="password"
           name="password"
           type="password"
           autoComplete="new-password"
           required
           minLength={6}
+          className={editorialInputClass}
+          placeholder="••••••••"
         />
-      </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={loading} className="w-full">
+      </EditorialField>
+      {error && <EditorialError>{error}</EditorialError>}
+      <EditorialButton type="submit" disabled={loading}>
         {loading ? "Creando…" : "Crear cuenta"}
-      </Button>
+        {!loading && <ArrowRight />}
+      </EditorialButton>
     </form>
   );
 }

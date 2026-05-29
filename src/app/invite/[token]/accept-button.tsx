@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { EditorialButton, EditorialError } from "@/components/marketing/auth-shell";
+import { ArrowRight } from "@/components/marketing/brand";
 import { acceptInvitation } from "@/server/organizations";
 
 export function AcceptInvitationButton({ token }: { token: string }) {
@@ -26,11 +27,12 @@ export function AcceptInvitationButton({ token }: { token: string }) {
   }
 
   return (
-    <div className="space-y-2">
-      <Button onClick={onClick} disabled={pending} className="w-full">
+    <div className="space-y-3">
+      <EditorialButton onClick={onClick} disabled={pending}>
         {pending ? "Aceptando…" : "Aceptar invitación"}
-      </Button>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {!pending && <ArrowRight />}
+      </EditorialButton>
+      {error && <EditorialError>{error}</EditorialError>}
     </div>
   );
 }

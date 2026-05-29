@@ -15,11 +15,16 @@ export default async function StudentsPage({ searchParams }: { searchParams: Sea
 
   return (
     <div>
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Estudiantes</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {students.length} {students.length === 1 ? "estudiante" : "estudiantes"} en {organization.name}
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+            Legajos · {organization.name}
+          </span>
+          <h1 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] font-light leading-[1.05] tracking-[-0.02em]">
+            Estudiantes.
+          </h1>
+          <p className="mt-3 text-[15px] text-ink/65">
+            {students.length} {students.length === 1 ? "estudiante" : "estudiantes"} activos.
           </p>
         </div>
         <Link href="/students/new">

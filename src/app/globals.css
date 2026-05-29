@@ -70,6 +70,16 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-jetbrains-mono);
+  --color-ink: #101418;
+  --color-cream: #FBF8F2;
+  --color-cream-deep: #F4EFE3;
+  --color-teal-deep: #0F766E;
+  --color-teal-bright: #14A69A;
+  --color-amber: #F5C26B;
+  --color-amber-deep: #B4791F;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));

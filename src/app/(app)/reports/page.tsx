@@ -94,10 +94,15 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reportes</h1>
-        <p className="text-sm text-muted-foreground">
-          Vista de la actividad de medición de tu organización.
+      <div className="mb-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Análisis · Evidencia
+        </span>
+        <h1 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] font-light leading-[1.05] tracking-[-0.02em]">
+          Reportes.
+        </h1>
+        <p className="mt-3 max-w-2xl text-[15px] text-ink/65">
+          Vista cruzada de la actividad de medición de tu organización.
         </p>
       </div>
 

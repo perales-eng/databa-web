@@ -3,9 +3,13 @@
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  EditorialButton,
+  EditorialError,
+  EditorialField,
+  editorialInputClass,
+} from "@/components/marketing/auth-shell";
+import { ArrowRight } from "@/components/marketing/brand";
 
 export function LoginForm() {
   const router = useRouter();
@@ -35,26 +39,35 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
-        <Input
+    <form onSubmit={onSubmit} className="space-y-5">
+      <EditorialField id="email" label="Email">
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className={editorialInputClass}
+          placeholder="tu@clinica.com"
+        />
+      </EditorialField>
+      <EditorialField id="password" label="Contraseña">
+        <input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
           minLength={6}
+          className={editorialInputClass}
+          placeholder="••••••••"
         />
-      </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "Entrando…" : "Entrar"}
-      </Button>
+      </EditorialField>
+      {error && <EditorialError>{error}</EditorialError>}
+      <EditorialButton type="submit" disabled={loading}>
+        {loading ? "Entrando…" : "Entrar a datABA"}
+        {!loading && <ArrowRight />}
+      </EditorialButton>
     </form>
   );
 }

@@ -3,9 +3,13 @@
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  EditorialButton,
+  EditorialError,
+  EditorialField,
+  editorialInputClass,
+} from "@/components/marketing/auth-shell";
+import { ArrowRight } from "@/components/marketing/brand";
 import { createOrganization } from "@/server/onboarding";
 
 export function OrganizationForm() {
@@ -31,26 +35,26 @@ export function OrganizationForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nombre de la organización *</Label>
-        <Input
+      <EditorialField
+        id="name"
+        label="Nombre de la organización"
+        hint="Podrás editarlo más tarde desde Configuración."
+      >
+        <input
           id="name"
           name="name"
           required
           maxLength={100}
           autoFocus
+          className={editorialInputClass}
           placeholder="Ej: Centro ABA San Martín"
         />
-        <p className="text-xs text-muted-foreground">
-          Podrás editarlo más tarde desde Configuración.
-        </p>
-      </div>
-
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-      <Button type="submit" disabled={loading} className="w-full">
+      </EditorialField>
+      {error && <EditorialError>{error}</EditorialError>}
+      <EditorialButton type="submit" disabled={loading}>
         {loading ? "Creando…" : "Crear organización"}
-      </Button>
+        {!loading && <ArrowRight />}
+      </EditorialButton>
     </form>
   );
 }

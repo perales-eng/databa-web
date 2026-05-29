@@ -37,10 +37,15 @@ export default async function CalendarPage() {
 
   return (
     <div className="h-full">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Clic en un evento para abrir su detalle, o clic en un día/franja vacía para crear una sesión nueva.
+      <header className="mb-8">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Agenda · Sesiones
+        </span>
+        <h1 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] font-light leading-[1.05] tracking-[-0.02em]">
+          Calendario.
+        </h1>
+        <p className="mt-3 max-w-2xl text-[15px] text-ink/65">
+          Tocá un evento para abrir su detalle, o un día / franja vacía para crear una sesión nueva.
         </p>
       </header>
       <CalendarView events={events} students={students} />
