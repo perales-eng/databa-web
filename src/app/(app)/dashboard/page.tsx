@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, BarChart3, Activity, ChevronRight, Plus } from "lucide-react";
+import { Users, Calendar, BarChart3, Activity, ChevronRight, Plus, AlertCircle } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,12 @@ export default async function DashboardPage() {
   const weekTo = new Date(weekFrom);
   weekTo.setDate(weekTo.getDate() + 7);
 
-  const [studentCount, weekSessionCount, upcoming] = await Promise.all([
+  const now = new Date();
+  // Candidatos a "vencida": status abierto + fecha pasada (mín. 1h atrás para no
+  // pisar sesiones recién empezadas). Después filtramos por duración planificada.
+  const overdueCutoff = new Date(now.getTime() - 60 * 60 * 1000);
+
+  const [studentCount, weekSessionCount, upcoming, overdueCandidates] = await Promise.all([
     db.student.count({ where: { organizationId: organization.id, deletedAt: null } }),
     db.therapySession.count({
       where: {
@@ -41,13 +46,27 @@ export default async function DashboardPage() {
       where: {
         organizationId: organization.id,
         deletedAt: null,
-        sessionDate: { gte: new Date() },
+        sessionDate: { gte: now },
       },
       orderBy: { sessionDate: "asc" },
       take: 5,
       include: { student: { select: { id: true, name: true, color: true } } },
     }),
+    db.therapySession.findMany({
+      where: {
+        organizationId: organization.id,
+        deletedAt: null,
+        status: { in: ["PENDING", "IN_PROGRESS"] },
+        sessionDate: { lt: overdueCutoff },
+      },
+      orderBy: { sessionDate: "asc" },
+      include: { student: { select: { id: true, name: true, color: true } } },
+    }),
   ]);
+
+  const overdue = overdueCandidates.filter(
+    (s) => s.sessionDate.getTime() + (s.durationMin ?? 60) * 60_000 < now.getTime(),
+  );
 
   return (
     <div>
@@ -66,6 +85,51 @@ export default async function DashboardPage() {
           <InstallPrompt />
         </div>
       </header>
+
+      {overdue.length > 0 && (
+        <div className="mb-8 overflow-hidden rounded-2xl border border-amber-deep/25 bg-amber/10">
+          <div className="flex items-start gap-3 px-5 py-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-deep" />
+            <div className="flex-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-deep">
+                Sesiones sin cerrar
+              </p>
+              <p className="mt-1 text-[15px] text-ink">
+                Tenés <span className="font-medium">{overdue.length}</span> sesión
+                {overdue.length === 1 ? "" : "es"} que pasaron su hora planificada y siguen abierta
+                {overdue.length === 1 ? "" : "s"}. Entrá para finalizarla{overdue.length === 1 ? "" : "s"}.
+              </p>
+            </div>
+          </div>
+          <ul className="divide-y divide-amber-deep/15 border-t border-amber-deep/15 bg-white/40">
+            {overdue.slice(0, 5).map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/sessions/${s.id}`}
+                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-white/70"
+                >
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: s.student.color ?? "var(--color-teal-deep)" }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-ink">{s.title}</p>
+                    <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
+                      {s.student.name} · {format(s.sessionDate, "PP p", { locale: es })} · {s.status === "IN_PROGRESS" ? "en curso" : "pendiente"}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-ink/50 transition group-hover:translate-x-0.5 group-hover:text-ink" />
+                </Link>
+              </li>
+            ))}
+            {overdue.length > 5 && (
+              <li className="px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
+                + {overdue.length - 5} más
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
