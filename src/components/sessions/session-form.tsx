@@ -53,14 +53,11 @@ export function SessionForm({ studentId, initial }: Props) {
     }
     toast.success(initial ? "Sesión actualizada" : "Sesión creada");
 
-    // Si la sesión es futura y es nueva (no estamos editando), volver al
-    // perfil del estudiante — no tiene sentido mostrar "Empezar a medir"
-    // para una sesión programada para más tarde.
-    const sessionDateStr = String(formData.get("sessionDate") ?? "");
-    const sessionDate = sessionDateStr ? new Date(sessionDateStr) : null;
-    const isFuture = sessionDate && sessionDate.getTime() > Date.now() + 60_000;
-
-    if (!initial && isFuture) {
+    // Sesión nueva PROGRAMADA → perfil del estudiante (no tiene sentido
+    // abrir "empezar a medir" si es para más tarde).
+    // Sesión nueva INMEDIATA o edición → abrir el detalle de la sesión.
+    const newSessionType = String(formData.get("sessionType") ?? "");
+    if (!initial && newSessionType === "SCHEDULED") {
       router.push(`/students/${studentId}`);
     } else {
       router.push(`/sessions/${result.id}`);
