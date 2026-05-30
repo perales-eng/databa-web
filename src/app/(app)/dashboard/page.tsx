@@ -8,6 +8,7 @@ import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/install-prompt";
+import { FinalizeOverdueButton } from "./finalize-button";
 
 const cards = [
   { href: "/students", title: "Estudiantes", description: "Gestioná los estudiantes de tu organización.", icon: Users },
@@ -103,23 +104,21 @@ export default async function DashboardPage() {
           </div>
           <ul className="divide-y divide-amber-deep/15 border-t border-amber-deep/15 bg-white/40">
             {overdue.slice(0, 5).map((s) => (
-              <li key={s.id}>
+              <li key={s.id} className="flex items-center gap-3 px-5 py-3 transition hover:bg-white/70">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: s.student.color ?? "var(--color-teal-deep)" }}
+                />
                 <Link
                   href={`/sessions/${s.id}`}
-                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-white/70"
+                  className="group min-w-0 flex-1"
                 >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: s.student.color ?? "var(--color-teal-deep)" }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-ink">{s.title}</p>
-                    <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
-                      {s.student.name} · {format(s.sessionDate, "PP p", { locale: es })} · {s.status === "IN_PROGRESS" ? "en curso" : "pendiente"}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-ink/50 transition group-hover:translate-x-0.5 group-hover:text-ink" />
+                  <p className="truncate text-[14px] font-medium text-ink group-hover:underline">{s.title}</p>
+                  <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
+                    {s.student.name} · {format(s.sessionDate, "PP p", { locale: es })} · {s.status === "IN_PROGRESS" ? "en curso" : "pendiente"}
+                  </p>
                 </Link>
+                <FinalizeOverdueButton sessionId={s.id} />
               </li>
             ))}
             {overdue.length > 5 && (
