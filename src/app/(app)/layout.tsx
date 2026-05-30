@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut } from "l
 import { requireOrganization } from "@/lib/auth-helpers";
 import { signOut } from "@/auth";
 import { Logomark } from "@/components/marketing/brand";
+import { MobileNav } from "./mobile-nav";
 
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
@@ -15,8 +16,34 @@ const navItems = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, organization, role } = await requireOrganization();
 
+  const logoutForm = (
+    <form
+      action={async () => {
+        "use server";
+        await signOut({ redirectTo: "/" });
+      }}
+    >
+      <button
+        type="submit"
+        className="flex w-full items-center gap-2 rounded-xl border border-ink/10 px-3 py-2 text-[13px] text-ink/70 transition hover:border-ink/20 hover:text-ink"
+      >
+        <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
+      </button>
+    </form>
+  );
+
   return (
-    <div className="flex min-h-screen bg-cream text-ink">
+    <div className="flex min-h-screen flex-col bg-cream text-ink md:flex-row">
+      {/* Top bar + drawer en mobile */}
+      <MobileNav
+        organizationName={organization.name}
+        role={role}
+        userLabel={user.name ?? user.email ?? ""}
+        userEmail={user.email ?? ""}
+        logoutSlot={logoutForm}
+      />
+
+      {/* Sidebar desktop */}
       <aside className="hidden w-72 flex-col border-r border-ink/10 bg-white/60 backdrop-blur md:flex">
         <div className="flex h-16 items-center gap-3 border-b border-ink/10 px-6">
           <Logomark size={32} />
@@ -55,24 +82,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
             {user.email}
           </p>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
-          >
-            <button
-              type="submit"
-              className="mt-4 flex w-full items-center gap-2 rounded-xl border border-ink/10 px-3 py-2 text-[13px] text-ink/70 transition hover:border-ink/20 hover:text-ink"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
-            </button>
-          </form>
+          <div className="mt-4">{logoutForm}</div>
         </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-10">{children}</div>
+        <div className="mx-auto max-w-[1280px] px-5 py-8 md:px-10 md:py-10">{children}</div>
       </main>
     </div>
   );
