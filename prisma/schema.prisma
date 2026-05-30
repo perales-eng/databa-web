@@ -6,8 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled endpoint de Neon en prod (rápido, sirve para runtime / server actions).
+  url       = env("DATABASE_URL")
+  // Direct endpoint para migraciones (`prisma migrate deploy` en build).
+  // En dev local con Postgres en localhost no hay pooler, así que apunta al mismo URL.
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
