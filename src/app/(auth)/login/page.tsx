@@ -32,7 +32,7 @@ export default function LoginPage() {
           <p>
             El registro público está cerrado.{" "}
             <a
-              href="mailto:hola@databa.app?subject=Pido%20invitaci%C3%B3n%20a%20datABA"
+              href="mailto:team.databa@gmail.com?subject=Pido%20invitaci%C3%B3n%20a%20datABA"
               className="font-medium text-teal-deep underline decoration-teal-deep/30 decoration-2 underline-offset-[5px] transition hover:decoration-teal-deep"
             >
               Pedir invitación

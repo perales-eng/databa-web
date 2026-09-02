@@ -8,7 +8,7 @@ export default function LandingPage() {
     : { href: "/login", label: "Entrar a datABA" };
   const secondaryCta = open
     ? { href: "/login", label: "Ya tengo cuenta" }
-    : { href: "mailto:hola@databa.app?subject=Pido%20acceso%20a%20datABA", label: "Pedir invitación" };
+    : { href: "mailto:team.databa@gmail.com?subject=Pido%20acceso%20a%20datABA", label: "Pedir invitación" };
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#FBF8F2] text-[#101418] [font-family:var(--font-geist-sans)]">

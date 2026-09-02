@@ -30,7 +30,7 @@ export default function SignupPage() {
         }
       >
         <a
-          href="mailto:hola@databa.app?subject=Pido%20invitaci%C3%B3n%20a%20datABA"
+          href="mailto:team.databa@gmail.com?subject=Pido%20invitaci%C3%B3n%20a%20datABA"
           className="group inline-flex items-center gap-3 rounded-full bg-ink px-6 py-4 text-[15px] font-medium text-cream transition hover:bg-teal-bright hover:text-ink"
         >
           Pedir invitación
