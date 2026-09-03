@@ -3,9 +3,9 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { changeMemberRole, removeMember, revokeInvitation } from "@/server/organizations";
+import { changeMemberRole, removeMember, revokeInvitation, toggleOrganizationSuspension } from "@/server/organizations";
 
 export function MemberRoleSelect({
   membershipId,
@@ -48,6 +48,47 @@ export function MemberRoleSelect({
   );
 }
 
+export function SuspendMemberButton({
+  membershipId,
+  name,
+  suspended,
+  disabled,
+}: {
+  membershipId: string;
+  name: string;
+  suspended: boolean;
+  disabled: boolean;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = React.useState(false);
+
+  async function onClick() {
+    const action = suspended ? "reactivar" : "suspender";
+    if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} la cuenta de ${name}?`)) return;
+    setPending(true);
+    const result = await toggleOrganizationSuspension(membershipId);
+    setPending(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(result.suspended ? "Cuenta suspendida" : "Cuenta reactivada");
+    router.refresh();
+  }
+
+  return (
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      onClick={onClick} 
+      disabled={disabled || pending} 
+      title={suspended ? "Reactivar cuenta" : "Suspender cuenta"}
+    >
+      {suspended ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+    </Button>
+  );
+}
+
 export function RemoveMemberButton({
   membershipId,
   name,
@@ -61,7 +102,7 @@ export function RemoveMemberButton({
   const [pending, setPending] = React.useState(false);
 
   async function onClick() {
-    if (!confirm(`¿Remover a ${name} de la organización?`)) return;
+    if (!confirm(`⚠️ ADVERTENCIA: ¿Eliminar permanentemente a ${name} y TODOS sus datos?\n\nEsta acción NO se puede deshacer. Se eliminará:\n- Su organización\n- Todos sus estudiantes\n- Todas sus sesiones\n- Todos sus registros\n\n¿Continuar?`)) return;
     setPending(true);
     const result = await removeMember(membershipId);
     setPending(false);
@@ -69,12 +110,12 @@ export function RemoveMemberButton({
       toast.error(result.error);
       return;
     }
-    toast.success("Miembro removido");
+    toast.success("Miembro eliminado permanentemente");
     router.refresh();
   }
 
   return (
-    <Button variant="ghost" size="icon" onClick={onClick} disabled={disabled || pending} title="Remover">
+    <Button variant="ghost" size="icon" onClick={onClick} disabled={disabled || pending} title="Eliminar permanentemente">
       <Trash2 className="h-4 w-4" />
     </Button>
   );

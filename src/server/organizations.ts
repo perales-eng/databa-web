@@ -258,7 +258,64 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
   return { ok: true };
 }
 
-// ─────────────────── 7.5. Aceptar invitación ────────────────────────────────
+// ─────────────────── 7.6. Suspender/Reactivar organizaciones ────────────────
+
+export async function toggleOrganizationSuspension(membershipId: string): Promise<ActionResult<{ suspended: boolean }>> {
+  const { organization, role, user } = await requireOrganization();
+  
+  // Solo DEV puede suspender/reactivar organizaciones
+  if (role !== "DEV") {
+    return { ok: false, error: "Sin permisos para suspender organizaciones" };
+  }
+
+  const m = await db.membership.findFirst({
+    where: { id: membershipId, organizationId: organization.id },
+  });
+  if (!m) return { ok: false, error: "Membresía no encontrada" };
+  if (m.userId === user.id) return { ok: false, error: "No podés suspender tu propia cuenta" };
+
+  // Solo se pueden suspender OWNERs
+  if (m.role !== "OWNER") {
+    return { ok: false, error: "Solo se pueden suspender cuentas de propietarios" };
+  }
+
+  // Encontrar la organización propia del OWNER
+  const ownerOrganizations = await db.membership.findMany({
+    where: {
+      userId: m.userId,
+      role: "OWNER",
+      organizationId: { not: organization.id },
+    },
+    include: {
+      organization: {
+        include: {
+          memberships: true,
+        },
+      },
+    },
+  });
+
+  const ownClinic = ownerOrganizations.find(
+    (om) => om.organization.memberships.length === 1 && om.organization.memberships[0].userId === m.userId
+  );
+
+  if (!ownClinic) {
+    return { ok: false, error: "No se encontró la organización del propietario" };
+  }
+
+  // Cambiar el estado de suspensión
+  const newSuspendedState = !ownClinic.organization.suspended;
+  
+  await db.organization.update({
+    where: { id: ownClinic.organizationId },
+    data: { suspended: newSuspendedState },
+  });
+
+  revalidatePath("/settings");
+  return { ok: true, suspended: newSuspendedState };
+}
+
+// ─────────────────── 7.7. Aceptar invitación ────────────────────────────────
 
 function slugify(name: string): string {
   return name

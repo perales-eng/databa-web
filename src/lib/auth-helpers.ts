@@ -23,6 +23,7 @@ export async function requireUser() {
 /**
  * Returns the user's "current" organization. For now we pick the first membership.
  * Later this will read a cookie or session preference.
+ * Redirects to /suspended if the organization is suspended.
  */
 export async function requireOrganization() {
   const user = await requireUser();
@@ -30,6 +31,12 @@ export async function requireOrganization() {
   if (!membership) {
     redirect("/onboarding");
   }
+  
+  // Verificar si la organización está suspendida (solo aplica a no-DEV)
+  if (membership.organization.suspended && membership.role !== "DEV") {
+    redirect("/suspended");
+  }
+  
   return {
     user,
     organization: membership.organization,

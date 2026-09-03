@@ -11,6 +11,7 @@ import {
   MemberRoleSelect,
   RemoveMemberButton,
   RevokeInvitationButton,
+  SuspendMemberButton,
 } from "./_components/member-actions";
 
 const ROLE_LABELS = {
@@ -34,7 +35,11 @@ export default async function SettingsPage() {
   const [members, invitations, behaviorCount] = await Promise.all([
     db.membership.findMany({
       where: { organizationId: organization.id },
-      include: { user: { select: { id: true, email: true, name: true } } },
+      include: { 
+        user: { 
+          select: { id: true, email: true, name: true } 
+        } 
+      },
       orderBy: { createdAt: "asc" },
     }),
     db.invitation.findMany({
@@ -43,6 +48,38 @@ export default async function SettingsPage() {
     }),
     db.behavior.count({ where: { organizationId: organization.id, deletedAt: null } }),
   ]);
+
+  // Para cada OWNER, obtener el estado de suspensión de su organización
+  const membersWithSuspensionStatus = await Promise.all(
+    members.map(async (m) => {
+      if (m.role !== "OWNER") {
+        return { ...m, ownerOrgSuspended: false };
+      }
+
+      // Buscar la organización propia del OWNER
+      const ownerOrgs = await db.membership.findMany({
+        where: {
+          userId: m.userId,
+          role: "OWNER",
+          organizationId: { not: organization.id },
+        },
+        include: {
+          organization: {
+            select: {
+              suspended: true,
+              _count: { select: { memberships: true } },
+            },
+          },
+        },
+      });
+
+      const ownClinic = ownerOrgs.find(
+        (om) => om.organization._count.memberships === 1
+      );
+
+      return { ...m, ownerOrgSuspended: ownClinic?.organization.suspended ?? false };
+    })
+  );
 
   return (
     <div className="space-y-6">
@@ -143,14 +180,20 @@ export default async function SettingsPage() {
               Miembros activos
             </p>
             <ul className="divide-y rounded-md border">
-              {members.map((m) => {
+              {membersWithSuspensionStatus.map((m) => {
                 const isSelf = m.userId === user.id;
+                const isOwner = m.role === "OWNER";
                 return (
                   <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                     <div className="min-w-0">
                       <p className="truncate font-medium">
                         {m.user.name ?? m.user.email}
                         {isSelf ? <span className="ml-2 text-xs text-muted-foreground">(vos)</span> : null}
+                        {isOwner && m.ownerOrgSuspended ? (
+                          <Badge variant="destructive" className="ml-2 text-xs">
+                            Suspendido
+                          </Badge>
+                        ) : null}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">{m.user.email}</p>
                     </div>
@@ -160,6 +203,14 @@ export default async function SettingsPage() {
                         currentRole={m.role}
                         disabled={!canManageMembers || isSelf}
                       />
+                      {isDev && isOwner && !isSelf ? (
+                        <SuspendMemberButton
+                          membershipId={m.id}
+                          name={m.user.name ?? m.user.email}
+                          suspended={m.ownerOrgSuspended}
+                          disabled={false}
+                        />
+                      ) : null}
                       <RemoveMemberButton
                         membershipId={m.id}
                         name={m.user.name ?? m.user.email}
