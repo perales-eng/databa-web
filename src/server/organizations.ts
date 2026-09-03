@@ -221,6 +221,27 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
 
 // ─────────────────── 7.5. Aceptar invitación ────────────────────────────────
 
+function slugify(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+async function uniqueSlug(base: string): Promise<string> {
+  const root = base || "org";
+  let candidate = root;
+  let n = 2;
+  while (await db.organization.findUnique({ where: { slug: candidate } })) {
+    candidate = `${root}-${n++}`;
+    if (n > 1000) throw new Error("No se pudo generar slug único");
+  }
+  return candidate;
+}
+
 export async function acceptInvitation(
   token: string,
 ): Promise<ActionResult<{ organizationId: string }>> {
@@ -230,12 +251,62 @@ export async function acceptInvitation(
   const rl = rateLimit(`accept-invite:${user.id}`, { max: 20, windowSec: 5 * 60 });
   if (!rl.ok) return { ok: false, error: "Demasiados intentos. Probá más tarde." };
 
-  const inv = await db.invitation.findUnique({ where: { token } });
+  const inv = await db.invitation.findUnique({ 
+    where: { token },
+    include: {
+      organization: {
+        include: {
+          memberships: {
+            where: { role: "DEV" },
+            select: { role: true }
+          }
+        }
+      }
+    }
+  });
+  
   if (!inv) return { ok: false, error: "Invitación no encontrada" };
   if (inv.acceptedAt) return { ok: false, error: "La invitación ya fue aceptada" };
   if (inv.expiresAt < new Date()) return { ok: false, error: "La invitación venció" };
 
-  // Idempotente: si ya hay membership, marcar aceptada y listo.
+  // Detectar si es una invitación de DEV a OWNER
+  const isDevInvitingOwner = inv.organization.memberships.some(m => m.role === "DEV") && inv.role === "OWNER";
+
+  if (isDevInvitingOwner) {
+    // Caso especial: DEV invitando a OWNER → crear nueva organización
+    const orgName = user.name ? `Clínica ${user.name}` : `Organización ${user.email.split("@")[0]}`;
+    const slug = await uniqueSlug(slugify(orgName));
+
+    const newOrg = await db.$transaction(async (tx) => {
+      // Crear nueva organización
+      const created = await tx.organization.create({
+        data: { name: orgName, slug },
+      });
+
+      // Hacer al usuario OWNER de su nueva organización
+      await tx.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: created.id,
+          role: "OWNER",
+        },
+      });
+
+      // Marcar invitación como aceptada
+      await tx.invitation.update({
+        where: { id: inv.id },
+        data: { acceptedAt: new Date() },
+      });
+
+      return created;
+    });
+
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+    return { ok: true, organizationId: newOrg.id };
+  }
+
+  // Caso normal: unirse a la organización del invitador
   const existing = await db.membership.findFirst({
     where: { userId: user.id, organizationId: inv.organizationId },
   });

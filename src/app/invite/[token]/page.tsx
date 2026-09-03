@@ -70,25 +70,42 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
 
   if (!session?.user) {
     const callback = `/invite/${token}`;
+    
+    // Detectar si es invitación de DEV a OWNER
+    const inviterMembership = await db.membership.findFirst({
+      where: {
+        organizationId: invitation.organizationId,
+        role: "DEV",
+      },
+    });
+    const isDevInvitingOwner = inviterMembership && invitation.role === "OWNER";
+
+    const title = isDevInvitingOwner
+      ? <>Te invitaron a usar <span className="italic text-teal-deep">datABA</span>.</>
+      : <>Te invitaron a <span className="italic text-teal-deep">{invitation.organization.name}</span>.</>;
+
+    const subtitle = isDevInvitingOwner
+      ? <>
+          Vas a crear tu propia organización. Iniciá sesión o creá una cuenta con{" "}
+          <span className="font-mono text-[14px] text-ink">{invitation.email}</span>
+        </>
+      : <>
+          Iniciá sesión o creá una cuenta con{" "}
+          <span className="font-mono text-[14px] text-ink">{invitation.email}</span> para unirte.
+        </>;
+
     return (
       <AuthShell
         kicker={`Invitación · ${invitation.role.toLowerCase()}`}
-        title={
-          <>
-            Te invitaron a <span className="italic text-teal-deep">{invitation.organization.name}</span>.
-          </>
-        }
-        subtitle={
-          <>
-            Iniciá sesión o creá una cuenta con{" "}
-            <span className="font-mono text-[14px] text-ink">{invitation.email}</span> para aceptar.
-          </>
-        }
+        title={title}
+        subtitle={subtitle}
         aside={
           <div className="rounded-2xl border border-ink/10 bg-white/70 p-6 backdrop-blur lg:mt-24">
             <Kicker>Próximo paso</Kicker>
             <p className="mt-3 font-display text-[20px] font-light leading-tight tracking-[-0.015em] text-ink">
-              Una vez dentro, vas a poder cargar estudiantes, registrar sesiones y compartir reportes.
+              {isDevInvitingOwner
+                ? "Vas a poder crear tu organización, cargar estudiantes y registrar sesiones."
+                : "Una vez dentro, vas a poder cargar estudiantes, registrar sesiones y compartir reportes."}
             </p>
           </div>
         }
@@ -97,7 +114,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
           <Link href={`/login?from=${encodeURIComponent(callback)}`} className={`${linkBtn} flex-1`}>
             Iniciar sesión <ArrowRight />
           </Link>
-          <Link href="/signup" className={`${outlineBtn} flex-1`}>Crear cuenta</Link>
+          <Link href={`/invite/${token}/signup`} className={`${outlineBtn} flex-1`}>Crear cuenta</Link>
         </div>
       </AuthShell>
     );
