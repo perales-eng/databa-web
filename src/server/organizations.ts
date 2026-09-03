@@ -197,6 +197,7 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
 
   const m = await db.membership.findFirst({
     where: { id: membershipId, organizationId: organization.id },
+    include: { user: true },
   });
   if (!m) return { ok: false, error: "Membresía no encontrada" };
   if (m.userId === user.id) return { ok: false, error: "No podés removerte a vos mismo" };
@@ -214,7 +215,45 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
   }
   // DEV puede remover a cualquiera
 
-  await db.membership.delete({ where: { id: m.id } });
+  // Si un DEV remueve a un OWNER, eliminar la organización propia del OWNER
+  if (role === "DEV" && m.role === "OWNER") {
+    await db.$transaction(async (tx) => {
+      // 1. Encontrar la organización propia del OWNER (donde es el único OWNER)
+      const ownerOrganizations = await tx.membership.findMany({
+        where: {
+          userId: m.userId,
+          role: "OWNER",
+          organizationId: { not: organization.id }, // excluir la org del DEV
+        },
+        include: {
+          organization: {
+            include: {
+              memberships: true,
+            },
+          },
+        },
+      });
+
+      // 2. Encontrar la org donde el OWNER es el único miembro (su clínica)
+      const ownClinic = ownerOrganizations.find(
+        (om) => om.organization.memberships.length === 1 && om.organization.memberships[0].userId === m.userId
+      );
+
+      // 3. Eliminar la organización propia del OWNER (cascada automática por Prisma)
+      if (ownClinic) {
+        await tx.organization.delete({
+          where: { id: ownClinic.organizationId },
+        });
+      }
+
+      // 4. Eliminar la membresía en la org del DEV
+      await tx.membership.delete({ where: { id: m.id } });
+    });
+  } else {
+    // Caso normal: solo eliminar la membresía
+    await db.membership.delete({ where: { id: m.id } });
+  }
+
   revalidatePath("/settings");
   return { ok: true };
 }
