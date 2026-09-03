@@ -273,17 +273,17 @@ export async function acceptInvitation(
   const isDevInvitingOwner = inv.organization.memberships.some(m => m.role === "DEV") && inv.role === "OWNER";
 
   if (isDevInvitingOwner) {
-    // Caso especial: DEV invitando a OWNER → crear nueva organización
+    // Caso especial: DEV invitando a OWNER → crear nueva organización Y unirse a la del DEV
     const orgName = user.name ? `Clínica ${user.name}` : `Organización ${user.email.split("@")[0]}`;
     const slug = await uniqueSlug(slugify(orgName));
 
     const newOrg = await db.$transaction(async (tx) => {
-      // Crear nueva organización
+      // 1. Crear nueva organización para el OWNER
       const created = await tx.organization.create({
         data: { name: orgName, slug },
       });
 
-      // Hacer al usuario OWNER de su nueva organización
+      // 2. Hacer al usuario OWNER de su nueva organización
       await tx.membership.create({
         data: {
           userId: user.id,
@@ -292,7 +292,16 @@ export async function acceptInvitation(
         },
       });
 
-      // Marcar invitación como aceptada
+      // 3. También unir al OWNER a la organización del DEV
+      await tx.membership.create({
+        data: {
+          userId: user.id,
+          organizationId: inv.organizationId,
+          role: "OWNER",
+        },
+      });
+
+      // 4. Marcar invitación como aceptada
       await tx.invitation.update({
         where: { id: inv.id },
         data: { acceptedAt: new Date() },
