@@ -26,7 +26,9 @@ export async function renameOrganization(
   formData: FormData,
 ): Promise<ActionResult<{ name: string }>> {
   const { organization, role } = await requireOrganization();
-  if (role !== "OWNER") return { ok: false, error: "Solo el propietario puede renombrar" };
+  if (role !== "DEV" && role !== "OWNER") {
+    return { ok: false, error: "Solo el desarrollador o propietario puede renombrar" };
+  }
 
   const parsed = renameSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) {
@@ -43,7 +45,7 @@ export async function renameOrganization(
 
 const inviteSchema = z.object({
   email: z.string().email("Email inválido"),
-  role: z.enum(["OWNER", "ADMIN", "THERAPIST"]).default("THERAPIST"),
+  role: z.enum(["DEV", "OWNER", "ADMIN", "THERAPIST"]).default("THERAPIST"),
 });
 
 function generateToken(): string {
@@ -54,7 +56,7 @@ export async function inviteMember(
   formData: FormData,
 ): Promise<ActionResult<{ token: string; email: string; emailSent: boolean }>> {
   const { organization, role } = await requireOrganization();
-  if (role !== "OWNER" && role !== "ADMIN") {
+  if (role !== "DEV" && role !== "OWNER" && role !== "ADMIN") {
     return { ok: false, error: "Sin permisos para invitar" };
   }
 
@@ -66,6 +68,25 @@ export async function inviteMember(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
   const email = parsed.data.email.toLowerCase().trim();
+  const inviteeRole = parsed.data.role;
+
+  // Validación jerárquica de permisos
+  if (role === "ADMIN") {
+    // ADMIN solo puede invitar THERAPIST
+    if (inviteeRole !== "THERAPIST") {
+      return { ok: false, error: "Los administradores solo pueden invitar terapeutas" };
+    }
+  } else if (role === "OWNER") {
+    // OWNER puede invitar ADMIN o THERAPIST (no OWNER ni DEV)
+    if (inviteeRole !== "ADMIN" && inviteeRole !== "THERAPIST") {
+      return { ok: false, error: "Los propietarios solo pueden invitar administradores o terapeutas" };
+    }
+  } else if (role === "DEV") {
+    // DEV puede invitar solo OWNER
+    if (inviteeRole !== "OWNER") {
+      return { ok: false, error: "Los desarrolladores solo pueden invitar propietarios" };
+    }
+  }
 
   // Si ya es miembro, no invitar de nuevo.
   const existingMember = await db.membership.findFirst({
@@ -86,7 +107,7 @@ export async function inviteMember(
     data: {
       organizationId: organization.id,
       email,
-      role: parsed.data.role,
+      role: inviteeRole,
       token,
       expiresAt,
       createdById: me.id,
@@ -99,7 +120,7 @@ export async function inviteMember(
     organizationName: organization.name,
     inviterName: me.name ?? me.email,
     inviteUrl,
-    role: parsed.data.role,
+    role: inviteeRole,
   });
   const emailResult = await sendEmail({ to: email, subject, html, text });
   const emailSent = emailResult.ok;
@@ -121,14 +142,18 @@ export async function revokeInvitation(id: string): Promise<ActionResult> {
 
 // ─────────────────── 7.6. Gestión de miembros ───────────────────────────────
 
-const roleSchema = z.enum(["OWNER", "ADMIN", "THERAPIST"]);
+const roleSchema = z.enum(["DEV", "OWNER", "ADMIN", "THERAPIST"]);
 
 export async function changeMemberRole(
   membershipId: string,
   newRole: string,
 ): Promise<ActionResult> {
   const { organization, role, user } = await requireOrganization();
-  if (role !== "OWNER") return { ok: false, error: "Solo el propietario puede cambiar roles" };
+  
+  // Solo DEV y OWNER pueden cambiar roles
+  if (role !== "DEV" && role !== "OWNER") {
+    return { ok: false, error: "Sin permisos para cambiar roles" };
+  }
 
   const parsed = roleSchema.safeParse(newRole);
   if (!parsed.success) return { ok: false, error: "Rol inválido" };
@@ -139,6 +164,24 @@ export async function changeMemberRole(
   if (!m) return { ok: false, error: "Membresía no encontrada" };
   if (m.userId === user.id) return { ok: false, error: "No podés cambiar tu propio rol" };
 
+  // Validación jerárquica para cambio de roles
+  if (role === "OWNER") {
+    // OWNER puede cambiar roles de ADMIN y THERAPIST únicamente
+    const targetMembership = await db.membership.findUnique({
+      where: { id: membershipId },
+      select: { role: true },
+    });
+    
+    if (targetMembership?.role === "DEV" || targetMembership?.role === "OWNER") {
+      return { ok: false, error: "No tenés permisos para cambiar el rol de propietarios o desarrolladores" };
+    }
+    
+    if (parsed.data === "DEV" || parsed.data === "OWNER") {
+      return { ok: false, error: "No podés asignar el rol de propietario o desarrollador" };
+    }
+  }
+  // DEV puede cambiar cualquier rol (no necesita validación adicional)
+
   await db.membership.update({ where: { id: m.id }, data: { role: parsed.data } });
   revalidatePath("/settings");
   return { ok: true };
@@ -146,13 +189,30 @@ export async function changeMemberRole(
 
 export async function removeMember(membershipId: string): Promise<ActionResult> {
   const { organization, role, user } = await requireOrganization();
-  if (role !== "OWNER") return { ok: false, error: "Solo el propietario puede remover miembros" };
+  
+  // Solo DEV y OWNER pueden remover miembros
+  if (role !== "DEV" && role !== "OWNER") {
+    return { ok: false, error: "Sin permisos para remover miembros" };
+  }
 
   const m = await db.membership.findFirst({
     where: { id: membershipId, organizationId: organization.id },
   });
   if (!m) return { ok: false, error: "Membresía no encontrada" };
   if (m.userId === user.id) return { ok: false, error: "No podés removerte a vos mismo" };
+
+  // OWNER no puede remover DEV u otros OWNER
+  if (role === "OWNER") {
+    const targetMembership = await db.membership.findUnique({
+      where: { id: membershipId },
+      select: { role: true },
+    });
+    
+    if (targetMembership?.role === "DEV" || targetMembership?.role === "OWNER") {
+      return { ok: false, error: "No tenés permisos para remover propietarios o desarrolladores" };
+    }
+  }
+  // DEV puede remover a cualquiera
 
   await db.membership.delete({ where: { id: m.id } });
   revalidatePath("/settings");

@@ -74,6 +74,7 @@ model VerificationToken {
 }
 
 enum Role {
+  DEV
   OWNER
   ADMIN
   THERAPIST

@@ -14,6 +14,7 @@ import {
 } from "./_components/member-actions";
 
 const ROLE_LABELS = {
+  DEV: "Desarrollador",
   OWNER: "Propietario",
   ADMIN: "Administrador",
   THERAPIST: "Terapeuta",
@@ -25,8 +26,10 @@ function formatDate(d: Date): string {
 
 export default async function SettingsPage() {
   const { user, organization, role } = await requireOrganization();
+  const isDev = role === "DEV";
   const isOwner = role === "OWNER";
-  const canInvite = isOwner || role === "ADMIN";
+  const canInvite = isDev || isOwner || role === "ADMIN";
+  const canManageMembers = isDev || isOwner;
 
   const [members, invitations, behaviorCount] = await Promise.all([
     db.membership.findMany({
@@ -78,7 +81,7 @@ export default async function SettingsPage() {
             <CardDescription>Datos generales.</CardDescription>
           </CardHeader>
           <CardContent>
-            <RenameOrgForm initialName={organization.name} disabled={!isOwner} />
+            <RenameOrgForm initialName={organization.name} disabled={!isDev && !isOwner} />
             <p className="mt-3 text-xs text-muted-foreground">
               Slug: <code className="rounded bg-muted px-1 py-0.5">{organization.slug}</code>
             </p>
@@ -112,7 +115,7 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {canInvite ? <InviteForm /> : null}
+          {canInvite ? <InviteForm userRole={role} /> : null}
 
           {invitations.length > 0 ? (
             <div>
@@ -155,12 +158,12 @@ export default async function SettingsPage() {
                       <MemberRoleSelect
                         membershipId={m.id}
                         currentRole={m.role}
-                        disabled={!isOwner || isSelf}
+                        disabled={!canManageMembers || isSelf}
                       />
                       <RemoveMemberButton
                         membershipId={m.id}
                         name={m.user.name ?? m.user.email}
-                        disabled={!isOwner || isSelf}
+                        disabled={!canManageMembers || isSelf}
                       />
                     </div>
                   </li>

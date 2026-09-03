@@ -13,7 +13,7 @@ export function MemberRoleSelect({
   disabled,
 }: {
   membershipId: string;
-  currentRole: "OWNER" | "ADMIN" | "THERAPIST";
+  currentRole: "DEV" | "OWNER" | "ADMIN" | "THERAPIST";
   disabled: boolean;
 }) {
   const router = useRouter();
@@ -40,6 +40,7 @@ export function MemberRoleSelect({
       disabled={disabled || pending}
       className="h-8 rounded-md border border-input bg-background px-2 text-xs disabled:opacity-60"
     >
+      <option value="DEV">Desarrollador</option>
       <option value="OWNER">Propietario</option>
       <option value="ADMIN">Administrador</option>
       <option value="THERAPIST">Terapeuta</option>

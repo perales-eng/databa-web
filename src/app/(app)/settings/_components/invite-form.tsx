@@ -9,11 +9,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { inviteMember } from "@/server/organizations";
 
-export function InviteForm() {
+type Role = "DEV" | "OWNER" | "ADMIN" | "THERAPIST";
+
+interface InviteFormProps {
+  userRole: Role;
+}
+
+export function InviteForm({ userRole }: InviteFormProps) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [generatedLink, setGeneratedLink] = React.useState<string | null>(null);
+
+  // Determinar qué roles puede invitar según el rol del usuario
+  const availableRoles: { value: Role; label: string }[] = React.useMemo(() => {
+    if (userRole === "DEV") {
+      return [{ value: "OWNER", label: "Propietario" }];
+    }
+    if (userRole === "OWNER") {
+      return [
+        { value: "ADMIN", label: "Administrador" },
+        { value: "THERAPIST", label: "Terapeuta" },
+      ];
+    }
+    if (userRole === "ADMIN") {
+      return [{ value: "THERAPIST", label: "Terapeuta" }];
+    }
+    return [];
+  }, [userRole]);
+
+  const defaultRole = availableRoles[0]?.value || "THERAPIST";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +68,16 @@ export function InviteForm() {
     toast.success("Link copiado");
   }
 
+  if (availableRoles.length === 0) {
+    return (
+      <div className="rounded-md border border-muted bg-muted/20 p-4">
+        <p className="text-sm text-muted-foreground">
+          No tenés permisos para invitar miembros.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-[1fr_140px_auto] sm:items-end">
@@ -55,12 +90,14 @@ export function InviteForm() {
           <select
             id="invite-role"
             name="role"
-            defaultValue="THERAPIST"
+            defaultValue={defaultRole}
             className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
           >
-            <option value="THERAPIST">Terapeuta</option>
-            <option value="ADMIN">Administrador</option>
-            <option value="OWNER">Propietario</option>
+            {availableRoles.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
           </select>
         </div>
         <Button type="submit" disabled={loading} size="sm">
