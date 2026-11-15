@@ -4,6 +4,7 @@ import * as React from "react";
 import { RotateCcw, Zap, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveLatencyResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { latency as latencyState } from "@/lib/measurements/pad-state";
@@ -66,18 +67,27 @@ export function LatencyPad({ sessionId, behaviorMethodId, behaviorName, sessionS
   async function handleSave() {
     setSaving(true);
     const sessionDurationSec = Math.round((Date.now() - sessionStartMs) / 1000);
-    const result = await saveLatencyResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       timesSec: times,
       sessionDurationSec,
-    });
+    };
+    const result = await runOrEnqueue(
+      "latency.save",
+      payload,
+      () => saveLatencyResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success(`"${behaviorName}" guardado — ${times.length} mediciones`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${times.length} mediciones. Sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${times.length} mediciones`);
+    }
     await clear();
     setTimes([]);
     onSaved();

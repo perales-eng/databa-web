@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveEventSamplingResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { eventSampling, type EventEntry as PureEventEntry } from "@/lib/measurements/pad-state";
@@ -68,7 +69,7 @@ export function EventSamplingPad({
 
   async function handleSave() {
     setSaving(true);
-    const result = await saveEventSamplingResult({
+    const payload = {
       sessionId,
       studentId,
       behaviorName,
@@ -81,13 +82,22 @@ export function EventSamplingPad({
         intensity,
         note,
       })),
-    });
+    };
+    const result = await runOrEnqueue(
+      "event.save",
+      payload,
+      () => saveEventSamplingResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success(`"${behaviorName}" guardado — ${events.length} eventos`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${events.length} eventos. Sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${events.length} eventos`);
+    }
     await clear();
     const fresh = eventSampling.reset();
     setCounter(fresh.counter);

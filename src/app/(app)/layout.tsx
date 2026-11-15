@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut } from "l
 import { requireOrganization } from "@/lib/auth-helpers";
 import { signOut } from "@/auth";
 import { Logomark } from "@/components/marketing/brand";
+import { SyncIndicator } from "@/components/sync-indicator";
 import { MobileNav } from "./mobile-nav";
 
 const navItems = [
@@ -78,6 +79,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="border-t border-ink/10 p-5">
+          <div className="mb-3 flex items-center">
+            <SyncIndicator compact />
+          </div>
           <p className="truncate text-[14px] font-medium text-ink">{user.name ?? user.email}</p>
           <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
             {user.email}

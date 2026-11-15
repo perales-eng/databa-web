@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2 } from "lucide-react";
 import { completeSession } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 
 export function FinalizeOverdueButton({ sessionId }: { sessionId: string }) {
   const router = useRouter();
@@ -15,13 +16,21 @@ export function FinalizeOverdueButton({ sessionId }: { sessionId: string }) {
     e.stopPropagation();
     setPending(true);
     try {
-      const result = await completeSession(sessionId);
+      const result = await runOrEnqueue(
+        "session.complete",
+        { sessionId },
+        () => completeSession(sessionId),
+      );
       if (!result.ok) {
         toast.error(result.error ?? "No se pudo finalizar");
         setPending(false);
         return;
       }
-      toast.success("Sesión finalizada");
+      toast.success(
+        result.deferred
+          ? "Sesión marcada como finalizada localmente — se confirma al recuperar conexión"
+          : "Sesión finalizada",
+      );
       router.refresh();
     } catch {
       toast.error("No se pudo finalizar la sesión");

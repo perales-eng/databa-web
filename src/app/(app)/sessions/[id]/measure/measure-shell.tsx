@@ -16,6 +16,8 @@ import { ABCForm } from "@/components/measure/abc-form";
 import { AnecdotalForm } from "@/components/measure/anecdotal-form";
 import { EventSamplingPad } from "@/components/measure/event-sampling-pad";
 import { completeSession } from "@/server/measurements";
+import { SyncIndicator } from "@/components/sync-indicator";
+import { runOrEnqueue } from "@/lib/offline-client";
 import type { MeasurementMethodType } from "@prisma/client";
 
 type BehaviorMethod = {
@@ -172,13 +174,21 @@ export function MeasureShell({ sessionId, studentId, studentName, behaviorMethod
 
   async function handleComplete() {
     setCompleting(true);
-    const result = await completeSession(sessionId);
+    const result = await runOrEnqueue(
+      "session.complete",
+      { sessionId },
+      () => completeSession(sessionId),
+    );
     setCompleting(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Sesión completada");
+    if (result.deferred) {
+      toast.success("Sesión marcada como completada localmente. Se confirma en el servidor al recuperar conexión.");
+    } else {
+      toast.success("Sesión completada");
+    }
     window.location.href = `/sessions/${sessionId}`;
   }
 
@@ -206,10 +216,13 @@ export function MeasureShell({ sessionId, studentId, studentName, behaviorMethod
             {behaviorMethods.length} conductas · {totalSaved} registros guardados
           </p>
         </div>
-        <Button onClick={handleComplete} disabled={completing} variant="outline" size="sm">
-          <CheckCircle2 className="h-4 w-4" />
-          {completing ? "Completando…" : "Finalizar sesión"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <SyncIndicator />
+          <Button onClick={handleComplete} disabled={completing} variant="outline" size="sm">
+            <CheckCircle2 className="h-4 w-4" />
+            {completing ? "Completando…" : "Finalizar sesión"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveAnecdotalRecord } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 
 type Props = {
   sessionId: string;
@@ -25,13 +26,22 @@ export function AnecdotalForm({ sessionId, studentId, behaviorName, onSaved }: P
     setError(null);
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    const result = await saveAnecdotalRecord(studentId, sessionId, behaviorName, formData);
+    const fields: Record<string, string> = {};
+    for (const [k, v] of formData.entries()) {
+      fields[k] = typeof v === "string" ? v : "";
+    }
+    const payload = { studentId, sessionId, behaviorName, fields };
+    const result = await runOrEnqueue(
+      "anecdotal.save",
+      payload,
+      () => saveAnecdotalRecord(studentId, sessionId, behaviorName, formData),
+    );
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    toast.success("Registro anecdótico guardado");
+    toast.success(result.deferred ? "Anecdótico guardado localmente — sube al recuperar conexión" : "Registro anecdótico guardado");
     formRef.current?.reset();
     onSaved();
   }

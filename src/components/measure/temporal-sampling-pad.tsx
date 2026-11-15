@@ -4,6 +4,7 @@ import * as React from "react";
 import { CheckCircle, XCircle, RotateCcw, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveTemporalSamplingResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { buildIntervals } from "@/lib/measurements/calc";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
@@ -111,7 +112,7 @@ export function TemporalSamplingPad({
       startSec: iv.startSec,
       marked: iv.marked ?? false,
     }));
-    const result = await saveTemporalSamplingResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       studentId,
@@ -119,7 +120,12 @@ export function TemporalSamplingPad({
       intervalDurationSec,
       totalDurationSec,
       intervals: completedIntervals,
-    });
+    };
+    const result = await runOrEnqueue(
+      "temporal.save",
+      payload,
+      () => saveTemporalSamplingResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
@@ -127,7 +133,11 @@ export function TemporalSamplingPad({
     }
     const marked = completedIntervals.filter((i) => i.marked).length;
     const pct = ((marked / completedIntervals.length) * 100).toFixed(0);
-    toast.success(`"${behaviorName}" guardado — ${marked}/${completedIntervals.length} intervalos (${pct}%)`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${marked}/${completedIntervals.length} (${pct}%). Sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${marked}/${completedIntervals.length} intervalos (${pct}%)`);
+    }
     await clear();
     reset();
     onSaved();

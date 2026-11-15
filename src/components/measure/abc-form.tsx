@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { saveABCRecord } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 
 type Props = {
   sessionId: string;
@@ -29,13 +30,22 @@ export function ABCForm({ sessionId, studentId, behaviorName, onSaved }: Props) 
     setError(null);
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    const result = await saveABCRecord(studentId, sessionId, behaviorName, formData);
+    const fields: Record<string, string> = {};
+    for (const [k, v] of formData.entries()) {
+      fields[k] = typeof v === "string" ? v : "";
+    }
+    const payload = { studentId, sessionId, behaviorName, fields };
+    const result = await runOrEnqueue(
+      "abc.save",
+      payload,
+      () => saveABCRecord(studentId, sessionId, behaviorName, formData),
+    );
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    toast.success("Registro ABC guardado");
+    toast.success(result.deferred ? "Registro ABC guardado localmente — sube al recuperar conexión" : "Registro ABC guardado");
     formRef.current?.reset();
     onSaved();
   }

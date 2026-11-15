@@ -4,6 +4,7 @@ import * as React from "react";
 import { CheckCircle, XCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveOpportunityResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { opportunity as opportunityState, type Opportunity as PureOpportunity } from "@/lib/measurements/pad-state";
@@ -58,19 +59,28 @@ export function OpportunityPad({
 
   async function handleSave() {
     setSaving(true);
-    const result = await saveOpportunityResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       studentId,
       opportunities,
-      endCondition: isComplete ? "OPPORTUNITY_LIMIT" : "MANUAL",
-    });
+      endCondition: (isComplete ? "OPPORTUNITY_LIMIT" : "MANUAL") as "OPPORTUNITY_LIMIT" | "MANUAL",
+    };
+    const result = await runOrEnqueue(
+      "opportunity.save",
+      payload,
+      () => saveOpportunityResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success(`"${behaviorName}" guardado — ${correct}/${opportunities.length} (${pct}%)`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${correct}/${opportunities.length} (${pct}%). Sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${correct}/${opportunities.length} (${pct}%)`);
+    }
     await clear();
     setOpportunities([]);
     onSaved();

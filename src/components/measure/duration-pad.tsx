@@ -4,6 +4,7 @@ import * as React from "react";
 import { RotateCcw, StopCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveDurationResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { duration as durationState } from "@/lib/measurements/pad-state";
@@ -67,19 +68,28 @@ export function DurationPad({ sessionId, behaviorMethodId, behaviorName, session
   async function handleSave() {
     setSaving(true);
     const sessionDurationSec = Math.round((Date.now() - sessionStartMs) / 1000);
-    const result = await saveDurationResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       durationsSec: durations,
       sessionDurationSec,
-    });
+    };
+    const result = await runOrEnqueue(
+      "duration.save",
+      payload,
+      () => saveDurationResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
     const avg = durations.length ? (durations.reduce((a, b) => a + b, 0) / durations.length).toFixed(1) : 0;
-    toast.success(`"${behaviorName}" guardado — ${durations.length} episodios, promedio ${avg}s`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${durations.length} ep., prom. ${avg}s. Se sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${durations.length} episodios, promedio ${avg}s`);
+    }
     await clear();
     setDurations([]);
     onSaved();

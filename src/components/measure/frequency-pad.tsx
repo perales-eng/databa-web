@@ -7,6 +7,7 @@ import { saveFrequencyResult } from "@/server/measurements";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { frequency } from "@/lib/measurements/pad-state";
+import { runOrEnqueue } from "@/lib/offline-client";
 
 type Props = {
   sessionId: string;
@@ -43,18 +44,29 @@ export function FrequencyPad({ sessionId, behaviorMethodId, behaviorName, sessio
   async function handleSave() {
     setSaving(true);
     const sessionDurationSec = Math.round((Date.now() - sessionStartMs) / 1000);
-    const result = await saveFrequencyResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       timestampsMs: timestamps,
       sessionDurationSec,
-    });
+    };
+    const result = await runOrEnqueue(
+      "frequency.save",
+      payload,
+      () => saveFrequencyResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success(`"${behaviorName}" guardado — ${timestamps.length} ocurrencias`);
+    if (result.deferred) {
+      toast.success(
+        `"${behaviorName}" guardado localmente — ${timestamps.length} ocurrencias. Se enviará al servidor cuando vuelva la conexión.`,
+      );
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${timestamps.length} ocurrencias`);
+    }
     await clear();
     setTimestamps([]);
     onSaved();

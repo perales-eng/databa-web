@@ -4,6 +4,7 @@ import * as React from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveIntensityResult } from "@/server/measurements";
+import { runOrEnqueue } from "@/lib/offline-client";
 import { toast } from "sonner";
 import { useMeasurementProgress } from "@/components/measure/_hooks/use-measurement-progress";
 import { intensity as intensityState } from "@/lib/measurements/pad-state";
@@ -51,19 +52,28 @@ export function IntensityPad({
   async function handleSave() {
     setSaving(true);
     const sessionDurationSec = Math.round((Date.now() - sessionStartMs) / 1000);
-    const result = await saveIntensityResult({
+    const payload = {
       sessionId,
       behaviorMethodId,
       values,
       sessionDurationSec,
-    });
+    };
+    const result = await runOrEnqueue(
+      "intensity.save",
+      payload,
+      () => saveIntensityResult(payload),
+    );
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
     const avg = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : 0;
-    toast.success(`"${behaviorName}" guardado — ${values.length} registros, promedio ${avg}`);
+    if (result.deferred) {
+      toast.success(`"${behaviorName}" guardado localmente — ${values.length} reg., prom. ${avg}. Sube al recuperar conexión.`);
+    } else {
+      toast.success(`"${behaviorName}" guardado — ${values.length} registros, promedio ${avg}`);
+    }
     await clear();
     setValues([]);
     onSaved();
