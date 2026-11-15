@@ -1,14 +1,16 @@
-// datABA service worker — Fase 3A: app-shell + stale-while-revalidate para HTML.
+// datABA service worker — Fase 3A v3: cachea HTML full y RSC payloads.
 //
-// Objetivo: que la PWA abra sin conexión mostrando la última versión cacheada
-// de las páginas que ya visitaste. Sigue preferido network cuando hay red.
+// Next.js app router hace dos tipos de fetches para la misma ruta:
+//  1. Hard load (reload / typed URL): navigation request, devuelve HTML completo.
+//  2. Soft load (<Link> click): fetch con header "rsc: 1", devuelve RSC payload.
 //
-// Privacy: las páginas HTML pueden contener datos del usuario. Al hacer logout,
-// la app envía un postMessage({type: "purge-user-cache"}) y el SW limpia el
-// cache de HTML. Los assets estáticos no contienen datos y quedan.
+// Ambos son necesarios para navegar offline. Antes solo cachéabamos (1), por
+// eso al clickear links offline fallaba y veías "sin conexión".
+//
+// Privacy: ante logout, la app manda postMessage({type: "purge-user-cache"}).
 
-const ASSETS_CACHE = "databa-assets-v2";
-const HTML_CACHE = "databa-html-v2";
+const ASSETS_CACHE = "databa-assets-v3";
+const HTML_CACHE = "databa-html-v3";
 
 const PRECACHE_URLS = [
   "/offline.html",
@@ -19,10 +21,9 @@ const PRECACHE_URLS = [
   "/manifest.webmanifest",
 ];
 
-// Rutas no cacheables como HTML: auth y entrada pública.
-// (Si cacheáramos /login con estado "ya logueado", al reabrir offline podrías
-// ver una UI confusa.)
-const HTML_BLOCKLIST = [/^\/api\//, /^\/auth\//, /\/signup/];
+// Rutas no cacheables: auth y registro público (su contenido depende del
+// estado de login).
+const HTML_BLOCKLIST = [/^\/api\//, /^\/auth\//, /\/signup/, /^\/login/];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,7 +35,6 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      // Purgar caches viejas (v1, etc.).
       const keep = new Set([ASSETS_CACHE, HTML_CACHE]);
       const keys = await caches.keys();
       await Promise.all(keys.filter((k) => !keep.has(k)).map((k) => caches.delete(k)));
@@ -54,12 +54,29 @@ self.addEventListener("message", (event) => {
   }
 });
 
-function isNavigationRequest(req) {
+function isHtmlBlocked(pathname) {
+  return HTML_BLOCKLIST.some((rx) => rx.test(pathname));
+}
+
+/** Detecta si la request es un fetch RSC de Next.js (soft navigation). */
+function isRscRequest(req) {
+  // Next 16 marca RSC fetches con el header `rsc: 1` (o `next-router-prefetch`).
+  const rscHeader = req.headers.get("rsc") || req.headers.get("Next-Router-Prefetch");
+  return !!rscHeader;
+}
+
+/** Detecta navegaciones full-page (reload, URL directa). */
+function isFullNavigation(req) {
   return req.mode === "navigate" || req.destination === "document";
 }
 
-function isHtmlBlocked(pathname) {
-  return HTML_BLOCKLIST.some((rx) => rx.test(pathname));
+/**
+ * Clave de cache: separamos HTML full y RSC payloads para el mismo pathname.
+ * Si no, un RSC payload cacheado se devolvería ante una navegación full y
+ * el browser mostraría basura.
+ */
+function cacheKey(url, isRsc) {
+  return new Request(url.origin + url.pathname + (isRsc ? "#rsc" : ""));
 }
 
 self.addEventListener("fetch", (event) => {
@@ -70,12 +87,14 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
-  // Navegaciones HTML: stale-while-revalidate contra HTML_CACHE.
-  if (isNavigationRequest(req)) {
+  const fullNav = isFullNavigation(req);
+  const rsc = isRscRequest(req);
+
+  // Páginas protegidas (navegación o RSC): stale-while-revalidate contra HTML_CACHE.
+  if (fullNav || rsc) {
     if (isHtmlBlocked(url.pathname)) {
-      // Rutas sensibles (auth): network only, fallback a offline.html.
       event.respondWith(
-        fetch(req).catch(() => caches.match("/offline.html")),
+        fetch(req).catch(() => (fullNav ? caches.match("/offline.html") : Response.error())),
       );
       return;
     }
@@ -83,40 +102,41 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         const cache = await caches.open(HTML_CACHE);
-        // Normalizar la clave: solo pathname (ignoramos query strings
-        // volátiles como ?utm=…).
-        const cacheKey = new Request(url.origin + url.pathname);
-        const cached = await cache.match(cacheKey);
+        const key = cacheKey(url, rsc);
+        const cached = await cache.match(key);
 
         const networkPromise = fetch(req)
           .then((res) => {
-            // Solo cachear respuestas 200 con HTML.
-            const ct = res.headers.get("content-type") || "";
-            if (res.ok && ct.includes("text/html")) {
-              cache.put(cacheKey, res.clone());
+            // Solo cachear 2xx. No validamos content-type porque los RSC
+            // payloads usan "text/x-component" y los HTML usan "text/html".
+            if (res.ok) {
+              cache.put(key, res.clone()).catch(() => {});
             }
             return res;
           })
           .catch(() => null);
 
-        // Si hay cache: devolver inmediatamente, revalidar en background.
         if (cached) {
-          // No esperamos la network para no bloquear la UI.
           event.waitUntil(networkPromise);
           return cached;
         }
 
-        // Sin cache: esperar network. Si falla, servir offline.html.
         const fresh = await networkPromise;
         if (fresh) return fresh;
-        const fallback = await caches.match("/offline.html");
-        return fallback || new Response("Offline", { status: 503 });
+
+        // Último recurso: si es navigation full, servir offline.html.
+        // Si es RSC, devolver error — Next va a mostrar su propia pantalla.
+        if (fullNav) {
+          const fallback = await caches.match("/offline.html");
+          return fallback || new Response("Offline", { status: 503 });
+        }
+        return Response.error();
       })(),
     );
     return;
   }
 
-  // Assets estáticos: stale-while-revalidate contra ASSETS_CACHE.
+  // Assets estáticos (script, style, image, font): stale-while-revalidate.
   if (["style", "script", "image", "font"].includes(req.destination)) {
     event.respondWith(
       caches.open(ASSETS_CACHE).then(async (cache) => {
