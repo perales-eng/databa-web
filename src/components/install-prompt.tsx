@@ -399,11 +399,31 @@ function FirefoxInstructions() {
           />
           <Step
             n={2}
-            title="Tocá 'Instalar'"
+            title="Tocá 'Más'"
+            body="Se abre un submenú con más opciones."
+          />
+          <Step
+            n={3}
+            title="Tocá 'Agregar app a la pantalla de inicio'"
             icon={<Plus className="h-3.5 w-3.5 text-teal-deep" />}
-            body="Firefox detecta datABA como app instalable y agrega el ícono a tu pantalla de inicio."
+            body={
+              <>
+                Es esa la opción, aunque no diga literalmente {"‹"}Instalar{"›"}. Firefox Android llama así al
+                proceso de instalar una PWA — el ícono de datABA queda junto a tus otras apps y se abre a
+                pantalla completa.
+              </>
+            }
+          />
+          <Step
+            n={4}
+            title="Confirmá con 'Agregar'"
+            body="Firefox te muestra cómo va a quedar el ícono. Confirmás y listo."
           />
         </ol>
+        <div className="mt-3 rounded-xl border border-ink/10 bg-white/60 p-3 text-[12px] text-ink/65">
+          <strong className="text-ink">Nota:</strong> en versiones muy nuevas de Firefox Android la opción
+          puede aparecer directamente en el menú principal como {"‹"}Instalar{"›"}. Si la ves ahí, es la misma.
+        </div>
       </div>
 
       <div className="rounded-xl border border-ink/10 bg-white/60 p-4">
