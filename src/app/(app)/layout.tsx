@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, BarChart3, Settings } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
-import { signOut } from "@/auth";
 import { Logomark } from "@/components/marketing/brand";
 import { SyncIndicator } from "@/components/sync-indicator";
+import { LogoutButton } from "@/components/logout-button";
 import { MobileNav } from "./mobile-nav";
 
 const navItems = [
@@ -17,21 +17,7 @@ const navItems = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, organization, role } = await requireOrganization();
 
-  const logoutForm = (
-    <form
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/" });
-      }}
-    >
-      <button
-        type="submit"
-        className="flex w-full items-center gap-2 rounded-xl border border-ink/10 px-3 py-2 text-[13px] text-ink/70 transition hover:border-ink/20 hover:text-ink"
-      >
-        <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
-      </button>
-    </form>
-  );
+  const logoutSlot = <LogoutButton />;
 
   return (
     <div className="flex min-h-screen flex-col bg-cream text-ink md:flex-row">
@@ -41,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         role={role}
         userLabel={user.name ?? user.email ?? ""}
         userEmail={user.email ?? ""}
-        logoutSlot={logoutForm}
+        logoutSlot={logoutSlot}
       />
 
       {/* Sidebar desktop */}
@@ -86,7 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
             {user.email}
           </p>
-          <div className="mt-4">{logoutForm}</div>
+          <div className="mt-4">{logoutSlot}</div>
         </div>
       </aside>
 
