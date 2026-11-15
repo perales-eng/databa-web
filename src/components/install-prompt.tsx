@@ -104,8 +104,9 @@ export function InstallPrompt() {
   const canInstruct = platform === "safari-ios" || platform === "safari-mac";
   const unsupported = platform === "unsupported";
 
-  // Nada útil para mostrar en este navegador y no hay prompt — ocultamos.
-  if (!hasAutoPrompt && !canInstruct && !unsupported && platform !== "chromium-mobile" && platform !== "chromium-desktop") {
+  // Mostramos para todas las plataformas conocidas. Solo ocultamos si realmente
+  // no sabemos qué navegador es Y no hay prompt (no tenemos nada útil que decir).
+  if (!hasAutoPrompt && platform === "unknown") {
     return null;
   }
 
@@ -114,7 +115,7 @@ export function InstallPrompt() {
     "chromium-desktop": "Instalá datABA en tu computadora",
     "safari-ios": "Instalá datABA en tu iPhone",
     "safari-mac": "Instalá datABA en tu Mac",
-    "firefox": "Instalá datABA",
+    "firefox": "Instalá datABA desde Firefox",
     "unsupported": "Instalá datABA desde otro navegador",
     "unknown": "Instalá datABA",
   };
@@ -124,7 +125,7 @@ export function InstallPrompt() {
     "chromium-desktop": "Queda en el Dock / barra de tareas sin barra del navegador.",
     "safari-ios": "Safari no instala apps solo — te mostramos los pasos exactos.",
     "safari-mac": "Safari de Mac instala desde el menú — te mostramos cómo.",
-    "firefox": "Firefox soporta instalación limitada. Te mostramos las opciones.",
+    "firefox": "Firefox tiene soporte parcial para apps web. En Android se instala desde el menú; en Mac/PC es más limitado.",
     "unsupported": "Este navegador no soporta instalar apps. Abrí databa.com en Chrome o Firefox.",
     "unknown": "Abrí databa.com en Chrome o Safari para instalar.",
   };
@@ -154,7 +155,11 @@ export function InstallPrompt() {
                 Ver instrucciones
               </Button>
             )}
-            {!hasAutoPrompt && !canInstruct && (platform === "chromium-mobile" || platform === "chromium-desktop") && (
+            {!hasAutoPrompt && !canInstruct && !unsupported && (
+              platform === "chromium-mobile" ||
+              platform === "chromium-desktop" ||
+              platform === "firefox"
+            ) && (
               <Button size="sm" variant="outline" onClick={() => setShowModal(true)}>
                 ¿Cómo instalar?
               </Button>
@@ -225,6 +230,7 @@ function InstallInstructionsModal({
                  platform === "safari-mac" ? "Safari — Mac" :
                  platform === "chromium-mobile" ? "Chrome — Android" :
                  platform === "chromium-desktop" ? "Chrome / Edge — PC o Mac" :
+                 platform === "firefox" ? "Firefox" :
                  "Instrucciones"}
               </p>
             </div>
@@ -244,7 +250,8 @@ function InstallInstructionsModal({
           {platform === "safari-mac" && <SafariMacInstructions />}
           {platform === "chromium-mobile" && <ChromiumMobileInstructions />}
           {platform === "chromium-desktop" && <ChromiumDesktopInstructions />}
-          {(platform === "firefox" || platform === "unknown") && <GenericInstructions />}
+          {platform === "firefox" && <FirefoxInstructions />}
+          {platform === "unknown" && <GenericInstructions />}
         </div>
       </div>
     </div>
@@ -374,6 +381,47 @@ function ChromiumDesktopInstructions() {
         body="Se agrega al Dock (Mac) o al menú Inicio (Windows). Se abre como ventana independiente."
       />
     </ol>
+  );
+}
+
+function FirefoxInstructions() {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Firefox en Android
+        </p>
+        <ol className="mt-3 space-y-0">
+          <Step
+            n={1}
+            title="Abrí el menú de Firefox"
+            body={<>Los tres puntitos <span className="font-mono">⋮</span> arriba a la derecha.</>}
+          />
+          <Step
+            n={2}
+            title="Tocá 'Instalar'"
+            icon={<Plus className="h-3.5 w-3.5 text-teal-deep" />}
+            body="Firefox detecta datABA como app instalable y agrega el ícono a tu pantalla de inicio."
+          />
+        </ol>
+      </div>
+
+      <div className="rounded-xl border border-ink/10 bg-white/60 p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
+          Firefox en Mac / PC
+        </p>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink/70">
+          Firefox desktop no soporta instalar apps web nativamente. Para una experiencia tipo app
+          nativa en computadora, abrí <span className="font-mono text-ink">databa.com</span> en
+          Chrome, Edge o Brave y usá su opción de instalar.
+        </p>
+      </div>
+
+      <p className="text-[12px] text-ink/55">
+        Igual podés seguir usando datABA desde Firefox desktop — solo que va a abrirse como pestaña
+        del navegador en vez de como app con ícono propio.
+      </p>
+    </div>
   );
 }
 
