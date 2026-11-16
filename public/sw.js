@@ -9,8 +9,8 @@
 //
 // Privacy: ante logout, la app manda postMessage({type: "purge-user-cache"}).
 
-const ASSETS_CACHE = "databa-assets-v3";
-const HTML_CACHE = "databa-html-v3";
+const ASSETS_CACHE = "databa-assets-v4";
+const HTML_CACHE = "databa-html-v4";
 
 const PRECACHE_URLS = [
   "/offline.html",
@@ -72,11 +72,17 @@ function isFullNavigation(req) {
 
 /**
  * Clave de cache: separamos HTML full y RSC payloads para el mismo pathname.
- * Si no, un RSC payload cacheado se devolvería ante una navegación full y
- * el browser mostraría basura.
+ *
+ * Usamos un query param __rsc=1 porque el constructor de Request() normaliza
+ * y descarta los hash fragments (#...), lo que haría que ambos tipos chocaran
+ * en la misma entrada. Los query params sí se preservan y la Cache API los
+ * usa para discriminar por default (ignoreSearch=false).
+ *
+ * Esta URL es puramente una clave interna del cache — el browser nunca la ve.
  */
 function cacheKey(url, isRsc) {
-  return new Request(url.origin + url.pathname + (isRsc ? "#rsc" : ""));
+  const suffix = isRsc ? "?__sw_rsc=1" : "";
+  return new Request(url.origin + url.pathname + suffix);
 }
 
 self.addEventListener("fetch", (event) => {
