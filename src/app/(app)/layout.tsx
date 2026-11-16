@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Calendar, BarChart3, Settings } from "lucide-re
 import { requireOrganization } from "@/lib/auth-helpers";
 import { Logomark } from "@/components/marketing/brand";
 import { SyncIndicator } from "@/components/sync-indicator";
+import { SwVersionBadge } from "@/components/sw-version-badge";
 import { LogoutButton } from "@/components/logout-button";
 import { MobileNav } from "./mobile-nav";
 
@@ -65,8 +66,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="border-t border-ink/10 p-5">
-          <div className="mb-3 flex items-center">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <SyncIndicator compact />
+            <SwVersionBadge />
           </div>
           <p className="truncate text-[14px] font-medium text-ink">{user.name ?? user.email}</p>
           <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-ink/55">
