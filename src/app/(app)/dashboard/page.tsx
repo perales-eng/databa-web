@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PersistSnapshot } from "@/components/persist-snapshot";
 import { OfflineDataBadge } from "@/components/offline-data-badge";
+import { PrefetchRoutes } from "@/components/prefetch-routes";
 import { FinalizeOverdueButton } from "./finalize-button";
 
 const cards = [
@@ -84,6 +85,13 @@ export default async function DashboardPage() {
     <div>
       <PersistSnapshot cacheKey={`dashboard:${organization.id}`} data={dashboardSnapshot} />
       <OfflineDataBadge cacheKey={`dashboard:${organization.id}`} />
+      <PrefetchRoutes
+        paths={[
+          ...upcoming.flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`]),
+          ...overdue.flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`]),
+          ...Array.from(new Set(upcoming.concat(overdue).map((s) => `/students/${s.student.id}`))),
+        ]}
+      />
       <header className="mb-10">
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
           Inicio · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}

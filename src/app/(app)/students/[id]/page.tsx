@@ -12,6 +12,7 @@ import { DeleteStudentButton } from "./delete-button";
 import { DeleteBehaviorMethodButton } from "./behaviors/delete-button";
 import { PersistSnapshot } from "@/components/persist-snapshot";
 import { OfflineDataBadge } from "@/components/offline-data-badge";
+import { PrefetchRoutes } from "@/components/prefetch-routes";
 
 const statusVariant = (s: string) =>
   s === "COMPLETED" ? "success" : s === "IN_PROGRESS" ? "warning" : s === "CANCELLED" ? "destructive" : "secondary";
@@ -29,6 +30,11 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     <div>
       <PersistSnapshot cacheKey={`student:${id}`} data={student} />
       <OfflineDataBadge cacheKey={`student:${id}`} />
+      <PrefetchRoutes
+        paths={student.therapySessions
+          .filter((s) => s.status === "PENDING" || s.status === "IN_PROGRESS")
+          .flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`])}
+      />
       <Link
         href="/students"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
