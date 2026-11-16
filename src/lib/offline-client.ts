@@ -148,6 +148,11 @@ export function useCachedSnapshot<T>(key: string): {
 
 let workerStarted = false;
 
+/** Nombre del evento que emitimos cuando sincronizamos ops exitosamente.
+ *  Un componente en el layout lo escucha y dispara router.refresh() para
+ *  que la UI muestre los datos frescos sin que el usuario tenga que recargar. */
+export const QUEUE_SYNCED_EVENT = "databa:queue-synced";
+
 export function startQueueWorker() {
   if (workerStarted || typeof window === "undefined") return;
   workerStarted = true;
@@ -155,7 +160,12 @@ export function startQueueWorker() {
   async function flush() {
     if (!isOnline()) return;
     try {
-      await processQueue(handlers);
+      const result = await processQueue(handlers);
+      if (result.ok > 0) {
+        window.dispatchEvent(
+          new CustomEvent(QUEUE_SYNCED_EVENT, { detail: { ok: result.ok } }),
+        );
+      }
     } catch {
       // processQueue ya maneja errores por operación; un throw acá sería bug nuestro
     }

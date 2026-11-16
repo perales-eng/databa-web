@@ -4,7 +4,7 @@ import * as React from "react";
 import { WifiOff, CloudUpload, AlertTriangle, Check, RefreshCw } from "lucide-react";
 import { processQueue, retryFailed } from "@/lib/offline-queue";
 import { handlers } from "@/lib/offline-handlers";
-import { useQueueStatus } from "@/lib/offline-client";
+import { useQueueStatus, QUEUE_SYNCED_EVENT } from "@/lib/offline-client";
 import { toast } from "sonner";
 
 export function SyncIndicator({ compact = false }: { compact?: boolean }) {
@@ -16,7 +16,10 @@ export function SyncIndicator({ compact = false }: { compact?: boolean }) {
     try {
       if (failed > 0) await retryFailed();
       const r = await processQueue(handlers);
-      if (r.ok > 0) toast.success(`${r.ok} operación${r.ok === 1 ? "" : "es"} sincronizada${r.ok === 1 ? "" : "s"}`);
+      if (r.ok > 0) {
+        toast.success(`${r.ok} operación${r.ok === 1 ? "" : "es"} sincronizada${r.ok === 1 ? "" : "s"}`);
+        window.dispatchEvent(new CustomEvent(QUEUE_SYNCED_EVENT, { detail: { ok: r.ok } }));
+      }
       if (r.failed > 0) toast.error(`${r.failed} fallaron después de reintentos`);
       if (r.ok === 0 && r.failed === 0 && r.retried === 0) toast("Nada que sincronizar");
     } finally {

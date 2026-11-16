@@ -49,6 +49,11 @@ self.addEventListener("message", (event) => {
   if (data.type === "purge-user-cache") {
     event.waitUntil(caches.delete(HTML_CACHE));
   }
+  if (data.type === "purge-html-cache") {
+    // Invalida HTML cacheado tras sincronizar operaciones offline, para que
+    // el próximo router.refresh() traiga data fresca del server.
+    event.waitUntil(caches.delete(HTML_CACHE));
+  }
   if (data.type === "skip-waiting") {
     self.skipWaiting();
   }

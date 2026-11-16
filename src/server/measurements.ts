@@ -34,6 +34,17 @@ async function verifySessionAndMethod(
   return { ok: true as const, session, bm };
 }
 
+/**
+ * Invalida todas las rutas que muestran datos de esta sesión / estudiante.
+ * Evita UI congelada después de guardar una medición: cuando el usuario
+ * vuelve al perfil del estudiante o al dashboard, ve los datos nuevos.
+ */
+function revalidateAfterMutation(sessionId: string, studentId: string) {
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/dashboard");
+}
+
 export async function saveFrequencyResult(data: {
   sessionId: string;
   behaviorMethodId: string;
@@ -67,7 +78,7 @@ export async function saveFrequencyResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, check.session.studentId);
   return { ok: true };
 }
 
@@ -98,7 +109,7 @@ export async function saveDurationResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, check.session.studentId);
   return { ok: true };
 }
 
@@ -129,7 +140,7 @@ export async function saveLatencyResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, check.session.studentId);
   return { ok: true };
 }
 
@@ -160,7 +171,7 @@ export async function saveIntensityResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, check.session.studentId);
   return { ok: true };
 }
 
@@ -192,7 +203,7 @@ export async function saveOpportunityResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, data.studentId);
   return { ok: true };
 }
 
@@ -228,7 +239,7 @@ export async function saveTemporalSamplingResult(data: {
   });
 
   await markSessionInProgress(data.sessionId);
-  revalidatePath(`/sessions/${data.sessionId}`);
+  revalidateAfterMutation(data.sessionId, data.studentId);
   return { ok: true };
 }
 
@@ -288,7 +299,7 @@ export async function saveABCRecord(
   });
 
   await markSessionInProgress(sessionId);
-  revalidatePath(`/sessions/${sessionId}`);
+  revalidateAfterMutation(sessionId, studentId);
   return { ok: true };
 }
 
@@ -332,7 +343,7 @@ export async function saveAnecdotalRecord(
   });
 
   await markSessionInProgress(sessionId);
-  revalidatePath(`/sessions/${sessionId}`);
+  revalidateAfterMutation(sessionId, studentId);
   return { ok: true };
 }
 
@@ -383,8 +394,7 @@ export async function completeSession(sessionId: string): Promise<MeasurementSav
     data: { status: "COMPLETED" },
   });
 
-  revalidatePath(`/sessions/${sessionId}`);
-  revalidatePath("/dashboard");
+  revalidateAfterMutation(sessionId, session.studentId);
   return { ok: true };
 }
 
