@@ -78,7 +78,15 @@ export async function runOrEnqueue(
   }
   try {
     const result = await run();
-    if (result.ok) return { ok: true, deferred: false };
+    if (result.ok) {
+      // Mutation ONLINE exitosa: emitir evento para que SyncRefresh purgue
+      // el cache HTML del SW y haga router.refresh(). Sin esto, el SW seguiría
+      // sirviendo HTML stale (stale-while-revalidate) en la próxima navegación.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(QUEUE_SYNCED_EVENT, { detail: { ok: 1 } }));
+      }
+      return { ok: true, deferred: false };
+    }
     // Error de app (validación, permisos). No encolamos, devolvemos al UI.
     return { ok: false, error: result.error ?? "Rechazado por el servidor" };
   } catch (err) {
