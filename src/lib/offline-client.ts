@@ -9,9 +9,11 @@ import * as React from "react";
 import {
   counts,
   enqueue,
+  getCache,
   isNetworkError,
   isOnline,
   processQueue,
+  putCache,
   subscribeToChanges,
   type OperationType,
 } from "./offline-queue";
@@ -87,6 +89,59 @@ export async function runOrEnqueue(
     }
     throw err;
   }
+}
+
+// ---------- Snapshot de datos: persiste y lee cache (Fase 3B) ----------
+
+/**
+ * Hook para páginas: cuando el server te dio `data` fresco, lo persistimos
+ * en IndexedDB bajo `key`. Si volvés a esta pantalla offline, otro componente
+ * puede leerlo con `useCachedSnapshot`.
+ *
+ * Es fire-and-forget — no bloquea renderizado online.
+ */
+export function usePersistSnapshot<T>(key: string, data: T): void {
+  React.useEffect(() => {
+    // No hace nada si corre en SSR.
+    if (typeof window === "undefined") return;
+    void putCache(key, data);
+  }, [key, data]);
+}
+
+/**
+ * Hook para páginas: lee el snapshot cacheado de `key`. Devuelve:
+ *  - loading:true inicialmente
+ *  - {data, updatedAt} si había cache
+ *  - {data: null} si no había
+ */
+export function useCachedSnapshot<T>(key: string): {
+  loading: boolean;
+  data: T | null;
+  updatedAt: number | null;
+} {
+  const [state, setState] = React.useState<{
+    loading: boolean;
+    data: T | null;
+    updatedAt: number | null;
+  }>({ loading: true, data: null, updatedAt: null });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const entry = await getCache<T>(key);
+      if (cancelled) return;
+      setState({
+        loading: false,
+        data: entry?.data ?? null,
+        updatedAt: entry?.updatedAt ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+
+  return state;
 }
 
 // ---------- Worker: reacciona a online + polling ----------

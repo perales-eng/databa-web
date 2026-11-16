@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DeleteStudentButton } from "./delete-button";
 import { DeleteBehaviorMethodButton } from "./behaviors/delete-button";
+import { PersistSnapshot } from "@/components/persist-snapshot";
+import { OfflineDataBadge } from "@/components/offline-data-badge";
 
 const statusVariant = (s: string) =>
   s === "COMPLETED" ? "success" : s === "IN_PROGRESS" ? "warning" : s === "CANCELLED" ? "destructive" : "secondary";
@@ -25,6 +27,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div>
+      <PersistSnapshot cacheKey={`student:${id}`} data={student} />
+      <OfflineDataBadge cacheKey={`student:${id}`} />
       <Link
         href="/students"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

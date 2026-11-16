@@ -14,7 +14,7 @@
  * action correcto con el payload.
  */
 
-import Dexie, { type EntityTable } from "dexie";
+import Dexie, { type EntityTable, type Table } from "dexie";
 
 // ---------- Tipos ----------
 
@@ -48,14 +48,25 @@ export interface PendingOperation {
 
 // ---------- Dexie DB ----------
 
+export interface CacheEntry {
+  key: string;
+  data: unknown;
+  updatedAt: number;
+}
+
 class OfflineDb extends Dexie {
   pending!: EntityTable<PendingOperation, "id">;
+  cache!: Table<CacheEntry, string>;
 
   constructor() {
     super("databa-offline-queue");
     this.version(1).stores({
-      // Índices: ++id autoincrement, status para filtrar pendientes rápido.
       pending: "++id, status, type, createdAt",
+    });
+    // Fase 3B: tabla de snapshots de datos leídos del server.
+    this.version(2).stores({
+      pending: "++id, status, type, createdAt",
+      cache: "key, updatedAt",
     });
   }
 }
@@ -254,4 +265,54 @@ export function isNetworkError(err: unknown): boolean {
 export function isOnline(): boolean {
   if (typeof navigator === "undefined") return true;
   return navigator.onLine;
+}
+
+// ---------- Cache de datos (Fase 3B) ----------
+
+/**
+ * Guarda un snapshot del dato bajo `key`. Si existe, sobrescribe.
+ * No hace nada en SSR.
+ */
+export async function putCache(key: string, data: unknown): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.cache.put({ key, data, updatedAt: Date.now() });
+  notifyChange();
+}
+
+/**
+ * Lee el snapshot bajo `key`. Devuelve null si no existe.
+ */
+export async function getCache<T = unknown>(
+  key: string,
+): Promise<{ data: T; updatedAt: number } | null> {
+  const db = getDb();
+  if (!db) return null;
+  const entry = await db.cache.get(key);
+  if (!entry) return null;
+  return { data: entry.data as T, updatedAt: entry.updatedAt };
+}
+
+/** Elimina un snapshot. */
+export async function delCache(key: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.cache.delete(key);
+  notifyChange();
+}
+
+/** Lista todas las keys cacheadas (útil para debug / purga total). */
+export async function listCacheKeys(): Promise<string[]> {
+  const db = getDb();
+  if (!db) return [];
+  const all = await db.cache.toArray();
+  return all.map((e) => e.key);
+}
+
+/** Purga todo el cache (invocar en logout). */
+export async function purgeAllCache(): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.cache.clear();
+  notifyChange();
 }

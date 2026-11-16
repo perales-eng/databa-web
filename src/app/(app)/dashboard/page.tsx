@@ -8,6 +8,8 @@ import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/install-prompt";
+import { PersistSnapshot } from "@/components/persist-snapshot";
+import { OfflineDataBadge } from "@/components/offline-data-badge";
 import { FinalizeOverdueButton } from "./finalize-button";
 
 const cards = [
@@ -69,8 +71,19 @@ export default async function DashboardPage() {
     (s) => s.sessionDate.getTime() + (s.durationMin ?? 60) * 60_000 < now.getTime(),
   );
 
+  const dashboardSnapshot = {
+    studentCount,
+    weekSessionCount,
+    upcoming,
+    overdue,
+    orgName: organization.name,
+    userName: user.name ?? null,
+  };
+
   return (
     <div>
+      <PersistSnapshot cacheKey={`dashboard:${organization.id}`} data={dashboardSnapshot} />
+      <OfflineDataBadge cacheKey={`dashboard:${organization.id}`} />
       <header className="mb-10">
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">
           Inicio · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}

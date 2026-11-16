@@ -4,6 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { getSession } from "@/server/queries";
 import { MeasureShell } from "./measure-shell";
+import { PersistSnapshot } from "@/components/persist-snapshot";
+import { OfflineDataBadge } from "@/components/offline-data-badge";
 
 export default async function MeasurePage({ params }: { params: Promise<{ id: string }> }) {
   const { organization } = await requireOrganization();
@@ -28,8 +30,23 @@ export default async function MeasurePage({ params }: { params: Promise<{ id: st
     );
   }
 
+  const behaviorMethods = session.student.behaviorMethods.map((bm) => ({
+    ...bm,
+    config: (bm.config ?? {}) as Record<string, unknown>,
+  }));
+
+  const measureSnapshot = {
+    sessionId: session.id,
+    sessionTitle: session.title,
+    studentId: session.studentId,
+    studentName: session.student.name,
+    behaviorMethods,
+  };
+
   return (
     <div>
+      <PersistSnapshot cacheKey={`measure:${session.id}`} data={measureSnapshot} />
+      <OfflineDataBadge cacheKey={`measure:${session.id}`} />
       <Link
         href={`/sessions/${session.id}`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -46,10 +63,7 @@ export default async function MeasurePage({ params }: { params: Promise<{ id: st
         sessionId={session.id}
         studentId={session.studentId}
         studentName={session.student.name}
-        behaviorMethods={session.student.behaviorMethods.map((bm) => ({
-          ...bm,
-          config: (bm.config ?? {}) as Record<string, unknown>,
-        }))}
+        behaviorMethods={behaviorMethods}
       />
     </div>
   );

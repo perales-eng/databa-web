@@ -5,6 +5,8 @@ import { listStudents } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PersistSnapshot } from "@/components/persist-snapshot";
+import { OfflineDataBadge } from "@/components/offline-data-badge";
 
 type SearchParams = Promise<{ q?: string; sort?: string }>;
 
@@ -15,6 +17,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Sea
 
   return (
     <div>
+      <PersistSnapshot cacheKey={`students:${organization.id}`} data={students} />
+      <OfflineDataBadge cacheKey={`students:${organization.id}`} />
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">

@@ -3,10 +3,12 @@
 import * as React from "react";
 import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
+import { purgeAllCache } from "@/lib/offline-queue";
 
 /**
  * Logout cliente: antes de cerrar sesión, le avisa al service worker que
- * purgue el cache de HTML (puede contener datos del usuario actual).
+ * purgue el cache de HTML y limpia todos los snapshots de IndexedDB
+ * (datos del usuario actual).
  */
 export function LogoutButton() {
   const [pending, setPending] = React.useState(false);
@@ -17,8 +19,9 @@ export function LogoutButton() {
       if (typeof navigator !== "undefined" && navigator.serviceWorker?.controller) {
         navigator.serviceWorker.controller.postMessage({ type: "purge-user-cache" });
       }
+      await purgeAllCache();
     } catch {
-      // Si el postMessage falla no bloqueamos el logout.
+      // Si algo falla no bloqueamos el logout.
     }
     await signOut({ callbackUrl: "/" });
   }
