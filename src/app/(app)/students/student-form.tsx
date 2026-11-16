@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createStudent, updateStudent } from "@/server/students";
+import { mutate } from "@/lib/offline-client";
 
 type Props = {
   initial?: {
@@ -43,7 +44,7 @@ export function StudentForm({ initial }: Props) {
     const formData = new FormData(event.currentTarget);
     formData.set("color", color);
     const action = initial ? updateStudent.bind(null, initial.id) : createStudent;
-    const result = await action(formData);
+    const result = await mutate(() => action(formData));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { createSession, updateSession } from "@/server/sessions";
+import { mutate } from "@/lib/offline-client";
 import type { SessionStatus, SessionType } from "@prisma/client";
 
 type Props = {
@@ -45,7 +46,7 @@ export function SessionForm({ studentId, initial }: Props) {
     const formData = new FormData(event.currentTarget);
     formData.set("studentId", studentId);
     const action = initial ? updateSession.bind(null, initial.id) : createSession;
-    const result = await action(formData);
+    const result = await mutate(() => action(formData));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

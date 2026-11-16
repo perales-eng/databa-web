@@ -4,6 +4,7 @@ import * as React from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteStudent } from "@/server/students";
+import { mutate } from "@/lib/offline-client";
 
 export function DeleteStudentButton({ id, name }: { id: string; name: string }) {
   const [pending, startTransition] = React.useTransition();
@@ -13,7 +14,7 @@ export function DeleteStudentButton({ id, name }: { id: string; name: string }) 
       return;
     }
     startTransition(async () => {
-      await deleteStudent(id);
+      await mutate(() => deleteStudent(id));
     });
   }
 

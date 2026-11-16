@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Trash2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { changeMemberRole, removeMember, revokeInvitation, toggleOrganizationSuspension } from "@/server/organizations";
+import { mutate } from "@/lib/offline-client";
 
 export function MemberRoleSelect({
   membershipId,
@@ -23,7 +24,7 @@ export function MemberRoleSelect({
     const newRole = e.target.value;
     if (newRole === currentRole) return;
     setPending(true);
-    const result = await changeMemberRole(membershipId, newRole);
+    const result = await mutate(() => changeMemberRole(membershipId, newRole));
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);
@@ -66,7 +67,7 @@ export function SuspendMemberButton({
     const action = suspended ? "reactivar" : "suspender";
     if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} la cuenta de ${name}?`)) return;
     setPending(true);
-    const result = await toggleOrganizationSuspension(membershipId);
+    const result = await mutate(() => toggleOrganizationSuspension(membershipId));
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);
@@ -104,7 +105,7 @@ export function RemoveMemberButton({
   async function onClick() {
     if (!confirm(`⚠️ ADVERTENCIA: ¿Eliminar permanentemente a ${name} y TODOS sus datos?\n\nEsta acción NO se puede deshacer. Se eliminará:\n- Su organización\n- Todos sus estudiantes\n- Todas sus sesiones\n- Todos sus registros\n\n¿Continuar?`)) return;
     setPending(true);
-    const result = await removeMember(membershipId);
+    const result = await mutate(() => removeMember(membershipId));
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);
@@ -128,7 +129,7 @@ export function RevokeInvitationButton({ invitationId }: { invitationId: string 
   async function onClick() {
     if (!confirm("¿Revocar esta invitación?")) return;
     setPending(true);
-    const result = await revokeInvitation(invitationId);
+    const result = await mutate(() => revokeInvitation(invitationId));
     setPending(false);
     if (!result.ok) {
       toast.error(result.error);

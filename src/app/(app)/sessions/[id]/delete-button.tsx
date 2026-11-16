@@ -4,6 +4,7 @@ import * as React from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteSession } from "@/server/sessions";
+import { mutate } from "@/lib/offline-client";
 
 export function DeleteSessionButton({ id, title }: { id: string; title: string }) {
   const [pending, startTransition] = React.useTransition();
@@ -11,7 +12,7 @@ export function DeleteSessionButton({ id, title }: { id: string; title: string }
   function onClick() {
     if (!confirm(`¿Eliminar la sesión "${title}"?`)) return;
     startTransition(async () => {
-      await deleteSession(id);
+      await mutate(() => deleteSession(id));
     });
   }
 

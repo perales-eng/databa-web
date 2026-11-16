@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { deleteBehaviorMethod } from "@/server/behaviors";
+import { mutate } from "@/lib/offline-client";
 
 export function DeleteBehaviorMethodButton({
   id,
@@ -21,7 +22,7 @@ export function DeleteBehaviorMethodButton({
     if (!confirm(`¿Eliminar el método "${behaviorName}"? Esta acción no se puede deshacer.`)) return;
     setLoading(true);
     try {
-      await deleteBehaviorMethod(id, studentId);
+      await mutate(() => deleteBehaviorMethod(id, studentId));
     } catch {
       toast.error("Error al eliminar el método");
       setLoading(false);

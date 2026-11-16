@@ -161,6 +161,38 @@ let workerStarted = false;
  *  que la UI muestre los datos frescos sin que el usuario tenga que recargar. */
 export const QUEUE_SYNCED_EVENT = "databa:queue-synced";
 
+/**
+ * Wrapper que ejecuta un server action mutación y si sale OK dispara el evento
+ * de refresh global (el mismo que usa la cola offline al sincronizar). Esto
+ * garantiza que:
+ *  - El HTML cache del SW se limpia (no sirve data stale en próxima navegación)
+ *  - Next.js vuelve a pedir el RSC → trae data fresh del server
+ *
+ * Uso típico desde un component "use client":
+ *   const result = await mutate(updateSession(id, formData));
+ *   if (result.ok) { ... }
+ *
+ * Alternativa usable con closures:
+ *   const result = await mutate(() => deleteStudent(id));
+ */
+export async function mutate<T>(
+  action: Promise<T> | (() => Promise<T>),
+): Promise<T> {
+  const result = await (typeof action === "function" ? action() : action);
+  // Emitimos si el resultado NO indica fallo explícito. Esto cubre tanto
+  // acciones que devuelven {ok: true}, como las que devuelven void o hacen
+  // redirect (deleteStudent, etc.). Solo cancelamos si { ok: false }.
+  const indicatesFailure =
+    result != null &&
+    typeof result === "object" &&
+    "ok" in result &&
+    (result as { ok: boolean }).ok === false;
+  if (!indicatesFailure && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(QUEUE_SYNCED_EVENT, { detail: { ok: 1 } }));
+  }
+  return result;
+}
+
 export function startQueueWorker() {
   if (workerStarted || typeof window === "undefined") return;
   workerStarted = true;

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { inviteMember } from "@/server/organizations";
+import { mutate } from "@/lib/offline-client";
 
 type Role = "DEV" | "OWNER" | "ADMIN" | "THERAPIST";
 
@@ -45,7 +46,7 @@ export function InviteForm({ userRole }: InviteFormProps) {
     setError(null);
     setLoading(true);
     setGeneratedLink(null);
-    const result = await inviteMember(new FormData(e.currentTarget));
+    const result = await mutate(() => inviteMember(new FormData(e.currentTarget)));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

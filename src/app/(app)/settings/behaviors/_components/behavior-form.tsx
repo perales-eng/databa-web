@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBehavior, updateBehavior, deleteBehavior } from "@/server/behavior-catalog";
+import { mutate } from "@/lib/offline-client";
 
 type Behavior = { id: string; name: string; description: string | null; usageCount: number };
 
@@ -20,7 +21,7 @@ export function CreateBehaviorForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await createBehavior(new FormData(e.currentTarget));
+    const result = await mutate(() => createBehavior(new FormData(e.currentTarget)));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
@@ -59,7 +60,7 @@ export function BehaviorRow({ behavior }: { behavior: Behavior }) {
     e.preventDefault();
     setError(null);
     setPending(true);
-    const result = await updateBehavior(behavior.id, new FormData(e.currentTarget));
+    const result = await mutate(() => updateBehavior(behavior.id, new FormData(e.currentTarget)));
     setPending(false);
     if (!result.ok) {
       setError(result.error);
@@ -77,7 +78,7 @@ export function BehaviorRow({ behavior }: { behavior: Behavior }) {
       if (!confirm(`¿Eliminar "${behavior.name}"?`)) return;
     }
     setPending(true);
-    const result = await deleteBehavior(behavior.id);
+    const result = await mutate(() => deleteBehavior(behavior.id));
     setPending(false);
     if (!result.ok) {
       toast.error(result.error ?? "Error");

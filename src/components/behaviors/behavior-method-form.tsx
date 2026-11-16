@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createBehaviorMethod, updateBehaviorMethod } from "@/server/behaviors";
+import { mutate } from "@/lib/offline-client";
 import type { MeasurementMethodType } from "@prisma/client";
 
 const METHOD_OPTIONS: { value: MeasurementMethodType; label: string }[] = [
@@ -316,7 +317,7 @@ export function BehaviorMethodForm({ studentId, initial, catalog = [] }: Props) 
     const action = initial
       ? updateBehaviorMethod.bind(null, initial.id, studentId)
       : createBehaviorMethod.bind(null, studentId);
-    const result = await action(formData);
+    const result = await mutate(() => action(formData));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);

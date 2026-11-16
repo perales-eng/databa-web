@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { renameOrganization } from "@/server/organizations";
+import { mutate } from "@/lib/offline-client";
 
 export function RenameOrgForm({ initialName, disabled }: { initialName: string; disabled: boolean }) {
-  const router = useRouter();
   const [name, setName] = React.useState(initialName);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -18,14 +17,14 @@ export function RenameOrgForm({ initialName, disabled }: { initialName: string; 
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await renameOrganization(new FormData(e.currentTarget));
+    const result = await mutate(() => renameOrganization(new FormData(e.currentTarget)));
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
     toast.success("Organización actualizada");
-    router.refresh();
+    // mutate() ya disparó el refresh global
   }
 
   return (
