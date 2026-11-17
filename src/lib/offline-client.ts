@@ -141,6 +141,20 @@ function formDataToFields(fd: FormData): Record<string, string> {
   return out;
 }
 
+/** Timeout para intentos online: si `navigator.onLine` miente, evitamos
+ * colgar el UI esperando un fetch que nunca va a resolver. */
+const ONLINE_ATTEMPT_TIMEOUT_MS = 6000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new TypeError("network timeout")), ms);
+    p.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
 /**
  * Crea un estudiante: online llama al server directo, offline genera tempId,
  * guarda en IndexedDB y encola. Devuelve `{id}` como si fuese el server.
@@ -152,7 +166,7 @@ export async function createStudentOffline(
   const fields = formDataToFields(formData);
   if (isOnline()) {
     try {
-      const r = await runOnline(formData);
+      const r = await withTimeout(runOnline(formData), ONLINE_ATTEMPT_TIMEOUT_MS);
       if (r.ok) return { ok: true, id: r.id, deferred: false };
       return r;
     } catch (err) {
@@ -188,7 +202,7 @@ export async function createSessionOffline(
   const forceOffline = isTempId(studentId);
   if (!forceOffline && isOnline()) {
     try {
-      const r = await runOnline(formData);
+      const r = await withTimeout(runOnline(formData), ONLINE_ATTEMPT_TIMEOUT_MS);
       if (r.ok) return { ok: true, id: r.id, deferred: false };
       return r;
     } catch (err) {

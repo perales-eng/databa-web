@@ -28,7 +28,11 @@ export function PendingStudentsList() {
   return (
     <>
       {items.map((s) => (
-        <Card key={s.tempId} className="h-full border-dashed opacity-85">
+        <Card
+          key={s.tempId}
+          className="h-full border-dashed opacity-85 cursor-not-allowed"
+          title="Disponible cuando vuelva la conexión y se sincronice"
+        >
           <CardContent className="flex items-start gap-4 p-5">
             <div
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white"
@@ -43,6 +47,9 @@ export function PendingStudentsList() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{s.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Se activará al sincronizar
+              </p>
               <div className="mt-2 flex flex-wrap gap-1">
                 <Badge variant="warning">Pendiente de sincronizar</Badge>
               </div>
