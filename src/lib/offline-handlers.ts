@@ -24,7 +24,7 @@ import {
 } from "@/server/measurements";
 import { createStudent } from "@/server/students";
 import { createSession } from "@/server/sessions";
-import { delCache, resolveId, type OperationType, type OperationHandler } from "./offline-queue";
+import { resolveId, type OperationType, type OperationHandler } from "./offline-queue";
 
 type HandlerMap = Record<OperationType, OperationHandler>;
 
@@ -48,8 +48,9 @@ export const handlers: HandlerMap = {
   "student.create": async (payload) => {
     const p = payload as { tempId: string; fields: Record<string, string> };
     const r = (await unwrap(createStudent(toFormData(p.fields)))) as { ok: true; id: string };
-    // Limpiar el temp cache ahora que existe en el server.
-    await delCache("temp:student:" + p.tempId);
+    // No borramos el temp cache acá: dejamos que PendingStudentsList lo oculte
+    // cuando vea el idMap. Así evitamos el parpadeo "temp desaparece → server
+    // refresh aún no llegó → nada visible → aparece real".
     return { tempId: p.tempId, realId: r.id, entity: "student" };
   },
   "session.create": async (payload, { idMap }) => {
@@ -62,7 +63,6 @@ export const handlers: HandlerMap = {
     const realStudentId = resolveId(p.studentId, idMap);
     const fields = { ...p.fields, studentId: realStudentId };
     const r = (await unwrap(createSession(toFormData(fields)))) as { ok: true; id: string };
-    await delCache("temp:session:" + p.tempId);
     return { tempId: p.tempId, realId: r.id, entity: "session" };
   },
 

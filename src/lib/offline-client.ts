@@ -213,21 +213,27 @@ export async function createSessionOffline(
 }
 
 /**
- * Hook: lista todos los temp items bajo un prefix. Devuelve un snapshot que
- * se actualiza con `subscribeToChanges` (sync cuando se encola/sincroniza).
+ * Hook: lista temp items bajo un prefix, ocultando los que ya se
+ * sincronizaron (tienen entrada en idMap). Esto evita el flash vacío entre
+ * "sincronicé y borré temp" → "server refresh trajo el real": mientras el
+ * router.refresh termina de traer la data fresca, el temp sigue visible.
+ * Cuando el server devuelve el ítem real, el componente server-rendered lo
+ * incluye y nosotros filtramos el temp porque ya hay mapping.
  */
-export function useTempItems<T>(keyPrefix: string): T[] {
+export function useTempItems<T extends { tempId: string }>(keyPrefix: string): T[] {
   const [items, setItems] = React.useState<T[]>([]);
 
   React.useEffect(() => {
     let cancelled = false;
     async function refresh() {
-      // Importamos dinámicamente para no cargar dexie en SSR.
-      const { listCacheKeys, getCache } = await import("./offline-queue");
-      const keys = (await listCacheKeys()).filter((k) => k.startsWith(keyPrefix));
-      const entries = await Promise.all(keys.map((k) => getCache<T>(k)));
+      const { listCacheKeys, getCache, getIdMapSnapshot } = await import("./offline-queue");
+      const [keys, idMap] = await Promise.all([listCacheKeys(), getIdMapSnapshot()]);
+      const filteredKeys = keys.filter((k) => k.startsWith(keyPrefix));
+      const entries = await Promise.all(filteredKeys.map((k) => getCache<T>(k)));
       if (cancelled) return;
-      setItems(entries.filter(Boolean).map((e) => (e as { data: T }).data));
+      const all = entries.filter(Boolean).map((e) => (e as { data: T }).data);
+      // Ocultar los que ya sincronizaron (están en idMap → el server los tiene).
+      setItems(all.filter((it) => !(it.tempId in idMap)));
     }
     void refresh();
     const unsub = subscribeToChanges(() => { void refresh(); });
