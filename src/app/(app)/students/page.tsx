@@ -21,7 +21,12 @@ export default async function StudentsPage({ searchParams }: { searchParams: Sea
     <div>
       <PersistSnapshot cacheKey={`students:${organization.id}`} data={students} />
       <OfflineDataBadge cacheKey={`students:${organization.id}`} />
-      <PrefetchRoutes paths={students.map((s) => `/students/${s.id}`)} />
+      <PrefetchRoutes
+        paths={[
+          "/students/new",
+          ...students.map((s) => `/students/${s.id}`),
+        ]}
+      />
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/55">

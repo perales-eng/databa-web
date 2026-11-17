@@ -87,6 +87,9 @@ export default async function DashboardPage() {
       <OfflineDataBadge cacheKey={`dashboard:${organization.id}`} />
       <PrefetchRoutes
         paths={[
+          "/students",
+          "/students/new",
+          "/calendar",
           ...upcoming.flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`]),
           ...overdue.flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`]),
           ...Array.from(new Set(upcoming.concat(overdue).map((s) => `/students/${s.student.id}`))),

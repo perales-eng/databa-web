@@ -32,9 +32,15 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       <PersistSnapshot cacheKey={`student:${id}`} data={student} />
       <OfflineDataBadge cacheKey={`student:${id}`} />
       <PrefetchRoutes
-        paths={student.therapySessions
-          .filter((s) => s.status === "PENDING" || s.status === "IN_PROGRESS")
-          .flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`])}
+        paths={[
+          `/students/${student.id}/sessions/new`,
+          `/students/${student.id}/edit`,
+          `/students/${student.id}/behaviors/new`,
+          ...student.behaviorMethods.map((m) => `/students/${student.id}/behaviors/${m.id}/edit`),
+          ...student.therapySessions
+            .filter((s) => s.status === "PENDING" || s.status === "IN_PROGRESS")
+            .flatMap((s) => [`/sessions/${s.id}`, `/sessions/${s.id}/measure`, `/sessions/${s.id}/edit`]),
+        ]}
       />
       <Link
         href="/students"
