@@ -36,6 +36,9 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           `/students/${student.id}/sessions/new`,
           `/students/${student.id}/edit`,
           `/students/${student.id}/behaviors/new`,
+          // Seed para que la URL /sessions/temp-*/measure funcione offline:
+          // el SW cachea este response y lo sirve para cualquier tempId.
+          "/sessions/temp-__seed__/measure",
           ...student.behaviorMethods.map((m) => `/students/${student.id}/behaviors/${m.id}/edit`),
           ...student.therapySessions
             .filter((s) => s.status === "PENDING" || s.status === "IN_PROGRESS")

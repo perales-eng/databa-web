@@ -189,7 +189,12 @@ export function MeasureShell({ sessionId, studentId, studentName, behaviorMethod
     } else {
       toast.success("Sesión completada");
     }
-    window.location.href = `/sessions/${sessionId}`;
+    // Sesiones temp no tienen /sessions/temp-xxx válida en el server.
+    // Volvemos al perfil del estudiante (siempre accesible).
+    const target = sessionId.startsWith("temp-")
+      ? `/students/${studentId}`
+      : `/sessions/${sessionId}`;
+    window.location.href = target;
   }
 
   if (behaviorMethods.length === 0) {

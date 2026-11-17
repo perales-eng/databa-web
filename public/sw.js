@@ -9,8 +9,16 @@
 //
 // Privacy: ante logout, la app manda postMessage({type: "purge-user-cache"}).
 
-const ASSETS_CACHE = "databa-assets-v4";
-const HTML_CACHE = "databa-html-v4";
+const ASSETS_CACHE = "databa-assets-v5";
+const HTML_CACHE = "databa-html-v5";
+
+// Seed de "medir sesión temp": una URL que el server renderiza como shell
+// client-only (idéntico para cualquier tempId). Cacheamos ese response una
+// vez online y después, offline, lo servimos para cualquier
+// /sessions/temp-<uuid>/measure. La URL concreta es arbitraria mientras su
+// id arranque con "temp-" (así el server page corta temprano con TempMeasure).
+const TEMP_MEASURE_SEED_PATH = "/sessions/temp-__seed__/measure";
+const TEMP_MEASURE_RX = /^\/sessions\/temp-[^/]+\/measure$/;
 
 const PRECACHE_URLS = [
   "/offline.html",
@@ -134,6 +142,18 @@ self.addEventListener("fetch", (event) => {
 
         const fresh = await networkPromise;
         if (fresh) return fresh;
+
+        // Fallback especial para /sessions/temp-*/measure: la URL concreta
+        // nunca fue vista por el server (la generó el cliente al crear
+        // offline). Pero el seed debería estar cacheado desde prefetch.
+        if (TEMP_MEASURE_RX.test(url.pathname)) {
+          const seedKey = cacheKey(
+            new URL(TEMP_MEASURE_SEED_PATH, url.origin),
+            rsc,
+          );
+          const seed = await cache.match(seedKey);
+          if (seed) return seed;
+        }
 
         // Último recurso: si es navigation full, servir offline.html.
         // Si es RSC, devolver error — Next va a mostrar su propia pantalla.

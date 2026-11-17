@@ -4,12 +4,21 @@ import { ChevronLeft } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { getSession } from "@/server/queries";
 import { MeasureShell } from "./measure-shell";
+import { TempMeasure } from "./temp-measure";
 import { PersistSnapshot } from "@/components/persist-snapshot";
 import { OfflineDataBadge } from "@/components/offline-data-badge";
 
 export default async function MeasurePage({ params }: { params: Promise<{ id: string }> }) {
-  const { organization } = await requireOrganization();
   const { id } = await params;
+  // Sesión creada offline (ID temporal): el server no la conoce. Renderizamos
+  // un shell client-only idéntico para cualquier tempId, para que el SW
+  // pueda alias-earlo a un único response cacheado. El cliente lee los datos
+  // reales desde IndexedDB usando el tempId de window.location.
+  if (id.startsWith("temp-")) {
+    return <TempMeasure />;
+  }
+
+  const { organization } = await requireOrganization();
   const session = await getSession(organization.id, id);
   if (!session) notFound();
 

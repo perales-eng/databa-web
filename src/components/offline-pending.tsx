@@ -10,6 +10,7 @@
  */
 
 import * as React from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,13 +70,16 @@ export function PendingSessionsList({ studentId }: { studentId: string }) {
   return (
     <ul className="divide-y">
       {items.map((s) => (
-        <li key={s.tempId} className="flex items-center justify-between gap-3 py-3 opacity-80">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{s.title}</p>
+        <li key={s.tempId} className="flex items-center justify-between gap-3 py-3">
+          <Link
+            href={`/sessions/${s.tempId}/measure`}
+            className="min-w-0 flex-1"
+          >
+            <p className="truncate text-sm font-medium hover:underline">{s.title}</p>
             <p className="text-xs text-muted-foreground">
               {formatSafeDate(s.sessionDate)}
             </p>
-          </div>
+          </Link>
           <Badge variant="warning">Pendiente</Badge>
         </li>
       ))}

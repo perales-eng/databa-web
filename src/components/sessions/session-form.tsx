@@ -57,21 +57,26 @@ export function SessionForm({ studentId, initial }: Props) {
       return;
     }
     const deferred = "deferred" in result && result.deferred;
+    const newSessionType = String(formData.get("sessionType") ?? "");
     if (deferred) {
-      // Temp session: no navegar al detalle (URL /sessions/temp-xxx no existe
-      // en el server). Volvemos al perfil del estudiante donde aparece con
-      // badge "pendiente" hasta que sincronice.
       toast.success("Sesión creada (pendiente de sincronizar)");
-      router.push(`/students/${studentId}`);
+      // Si es una sesión INMEDIATA, el usuario quiere empezar a medir ya.
+      // Vamos directo al measure page para la sesión temp: el SW sirve el
+      // shell cacheado y TempMeasure lee los datos de IndexedDB.
+      // Si es PROGRAMADA, no tiene sentido abrir medir ahora — volvemos al
+      // perfil donde aparece como pendiente.
+      if (newSessionType === "IMMEDIATE") {
+        router.push(`/sessions/${result.id}/measure`);
+      } else {
+        router.push(`/students/${studentId}`);
+      }
       router.refresh();
       return;
     }
     toast.success(initial ? "Sesión actualizada" : "Sesión creada");
 
-    // Sesión nueva PROGRAMADA → perfil del estudiante (no tiene sentido
-    // abrir "empezar a medir" si es para más tarde).
-    // Sesión nueva INMEDIATA o edición → abrir el detalle de la sesión.
-    const newSessionType = String(formData.get("sessionType") ?? "");
+    // Sesión nueva PROGRAMADA → perfil del estudiante.
+    // Sesión nueva INMEDIATA o edición → detalle de la sesión.
     if (!initial && newSessionType === "SCHEDULED") {
       router.push(`/students/${studentId}`);
     } else {
