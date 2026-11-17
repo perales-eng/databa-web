@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createStudent, updateStudent } from "@/server/students";
-import { mutate } from "@/lib/offline-client";
+import { createStudentOffline, mutate } from "@/lib/offline-client";
 
 type Props = {
   initial?: {
@@ -43,11 +43,25 @@ export function StudentForm({ initial }: Props) {
     setLoading(true);
     const formData = new FormData(event.currentTarget);
     formData.set("color", color);
-    const action = initial ? updateStudent.bind(null, initial.id) : createStudent;
-    const result = await mutate(() => action(formData));
+    let result: { ok: true; id: string; deferred?: boolean } | { ok: false; error: string };
+    if (initial) {
+      result = await mutate(() => updateStudent(initial.id, formData));
+    } else {
+      // Offline-aware: si no hay red, crea con ID temporal y encola.
+      result = await createStudentOffline(formData, (fd) => createStudent(fd));
+    }
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
+      return;
+    }
+    const deferred = "deferred" in result && result.deferred;
+    if (deferred) {
+      // No navegamos al perfil del temp — la URL /students/temp-xxx no existiría
+      // en el server. Volvemos a la lista donde aparece con badge "pendiente".
+      toast.success("Estudiante creado (pendiente de sincronizar)");
+      router.push("/students");
+      router.refresh();
       return;
     }
     toast.success(initial ? "Estudiante actualizado" : "Estudiante creado");

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { createSession, updateSession } from "@/server/sessions";
-import { mutate } from "@/lib/offline-client";
+import { createSessionOffline, mutate } from "@/lib/offline-client";
 import type { SessionStatus, SessionType } from "@prisma/client";
 
 type Props = {
@@ -45,11 +45,25 @@ export function SessionForm({ studentId, initial }: Props) {
     setLoading(true);
     const formData = new FormData(event.currentTarget);
     formData.set("studentId", studentId);
-    const action = initial ? updateSession.bind(null, initial.id) : createSession;
-    const result = await mutate(() => action(formData));
+    let result: { ok: true; id: string; deferred?: boolean } | { ok: false; error: string };
+    if (initial) {
+      result = await mutate(() => updateSession(initial.id, formData));
+    } else {
+      result = await createSessionOffline(formData, (fd) => createSession(fd));
+    }
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
+      return;
+    }
+    const deferred = "deferred" in result && result.deferred;
+    if (deferred) {
+      // Temp session: no navegar al detalle (URL /sessions/temp-xxx no existe
+      // en el server). Volvemos al perfil del estudiante donde aparece con
+      // badge "pendiente" hasta que sincronice.
+      toast.success("Sesión creada (pendiente de sincronizar)");
+      router.push(`/students/${studentId}`);
+      router.refresh();
       return;
     }
     toast.success(initial ? "Sesión actualizada" : "Sesión creada");

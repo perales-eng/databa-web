@@ -13,6 +13,7 @@ import { DeleteBehaviorMethodButton } from "./behaviors/delete-button";
 import { PersistSnapshot } from "@/components/persist-snapshot";
 import { OfflineDataBadge } from "@/components/offline-data-badge";
 import { PrefetchRoutes } from "@/components/prefetch-routes";
+import { PendingSessionsList } from "@/components/offline-pending";
 
 const statusVariant = (s: string) =>
   s === "COMPLETED" ? "success" : s === "IN_PROGRESS" ? "warning" : s === "CANCELLED" ? "destructive" : "secondary";
@@ -102,21 +103,27 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           </CardHeader>
           <CardContent>
             {student.therapySessions.length === 0 ? (
-              <EmptyState icon={Calendar} text="Sin sesiones todavía" />
+              <>
+                <EmptyState icon={Calendar} text="Sin sesiones todavía" />
+                <PendingSessionsList studentId={student.id} />
+              </>
             ) : (
-              <ul className="divide-y">
-                {student.therapySessions.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-3 py-3">
-                    <Link href={`/sessions/${s.id}`} className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium hover:underline">{s.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(s.sessionDate, "PPP p", { locale: es })}
-                      </p>
-                    </Link>
-                    <Badge variant={statusVariant(s.status)}>{statusLabel(s.status)}</Badge>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="divide-y">
+                  {student.therapySessions.map((s) => (
+                    <li key={s.id} className="flex items-center justify-between gap-3 py-3">
+                      <Link href={`/sessions/${s.id}`} className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium hover:underline">{s.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(s.sessionDate, "PPP p", { locale: es })}
+                        </p>
+                      </Link>
+                      <Badge variant={statusVariant(s.status)}>{statusLabel(s.status)}</Badge>
+                    </li>
+                  ))}
+                </ul>
+                <PendingSessionsList studentId={student.id} />
+              </>
             )}
           </CardContent>
         </Card>

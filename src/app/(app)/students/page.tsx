@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PersistSnapshot } from "@/components/persist-snapshot";
 import { OfflineDataBadge } from "@/components/offline-data-badge";
 import { PrefetchRoutes } from "@/components/prefetch-routes";
+import { PendingStudentsList } from "@/components/offline-pending";
 
 type SearchParams = Promise<{ q?: string; sort?: string }>;
 
@@ -67,20 +68,25 @@ export default async function StudentsPage({ searchParams }: { searchParams: Sea
       </form>
 
       {students.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Users className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">No hay estudiantes todavía</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Agregá tu primer estudiante para empezar a registrar datos.
-            </p>
-            <Link href="/students/new" className="mt-4">
-              <Button>
-                <Plus className="h-4 w-4" /> Nuevo estudiante
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <Users className="mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">No hay estudiantes todavía</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Agregá tu primer estudiante para empezar a registrar datos.
+              </p>
+              <Link href="/students/new" className="mt-4">
+                <Button>
+                  <Plus className="h-4 w-4" /> Nuevo estudiante
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <PendingStudentsList />
+          </div>
+        </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {students.map((s) => (
@@ -109,6 +115,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Sea
               </Card>
             </Link>
           ))}
+          <PendingStudentsList />
         </div>
       )}
     </div>

@@ -9,12 +9,15 @@ import * as React from "react";
 import {
   counts,
   enqueue,
+  genTempId,
   getCache,
   isNetworkError,
   isOnline,
+  isTempId,
   processQueue,
   putCache,
   subscribeToChanges,
+  TEMP_PREFIX,
   type OperationType,
 } from "./offline-queue";
 import { handlers } from "./offline-handlers";
@@ -98,6 +101,146 @@ export async function runOrEnqueue(
     throw err;
   }
 }
+
+// ---------- Create offline con ID temporal (Fase 3C) ----------
+
+/**
+ * Representa un item creado offline, pendiente de sync. Se almacena en el
+ * cache de IndexedDB bajo keys `temp:students:*` y `temp:sessions:*` para que
+ * las listas puedan mergearlos con los datos del server.
+ */
+export interface TempStudentCache {
+  tempId: string;
+  name: string;
+  color: string | null;
+  birthDate: string | null;
+  notes: string | null;
+  createdAt: number;
+}
+
+export interface TempSessionCache {
+  tempId: string;
+  studentId: string;
+  title: string;
+  description: string | null;
+  sessionDate: string;
+  durationMin: number | null;
+  sessionType: "SCHEDULED" | "IMMEDIATE";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  createdAt: number;
+}
+
+export const TEMP_STUDENT_KEY_PREFIX = "temp:student:";
+export const TEMP_SESSION_KEY_PREFIX = "temp:session:";
+
+function formDataToFields(fd: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of fd.entries()) {
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Crea un estudiante: online llama al server directo, offline genera tempId,
+ * guarda en IndexedDB y encola. Devuelve `{id}` como si fuese el server.
+ */
+export async function createStudentOffline(
+  formData: FormData,
+  runOnline: (fd: FormData) => Promise<{ ok: true; id: string } | { ok: false; error: string }>,
+): Promise<{ ok: true; id: string; deferred: boolean } | { ok: false; error: string }> {
+  const fields = formDataToFields(formData);
+  if (isOnline()) {
+    try {
+      const r = await runOnline(formData);
+      if (r.ok) return { ok: true, id: r.id, deferred: false };
+      return r;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      // fall through: encolar
+    }
+  }
+  const tempId = genTempId();
+  const cache: TempStudentCache = {
+    tempId,
+    name: fields.name ?? "",
+    color: fields.color || null,
+    birthDate: fields.birthDate || null,
+    notes: fields.notes || null,
+    createdAt: Date.now(),
+  };
+  await putCache(TEMP_STUDENT_KEY_PREFIX + tempId, cache);
+  await enqueue("student.create", { tempId, fields });
+  return { ok: true, id: tempId, deferred: true };
+}
+
+/**
+ * Crea una sesión: online directo, offline con tempId cacheado y encolado.
+ * El studentId puede ser temp (si se creó offline antes).
+ */
+export async function createSessionOffline(
+  formData: FormData,
+  runOnline: (fd: FormData) => Promise<{ ok: true; id: string } | { ok: false; error: string }>,
+): Promise<{ ok: true; id: string; deferred: boolean } | { ok: false; error: string }> {
+  const fields = formDataToFields(formData);
+  const studentId = fields.studentId ?? "";
+  // Si el studentId es temp, el server rechazaría (cuid fail). Forzamos offline path.
+  const forceOffline = isTempId(studentId);
+  if (!forceOffline && isOnline()) {
+    try {
+      const r = await runOnline(formData);
+      if (r.ok) return { ok: true, id: r.id, deferred: false };
+      return r;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+    }
+  }
+  const tempId = genTempId();
+  const cache: TempSessionCache = {
+    tempId,
+    studentId,
+    title: fields.title ?? "",
+    description: fields.description || null,
+    sessionDate: fields.sessionDate ?? new Date().toISOString(),
+    durationMin: fields.durationMin ? Number(fields.durationMin) : null,
+    sessionType: (fields.sessionType as "SCHEDULED" | "IMMEDIATE") ?? "SCHEDULED",
+    status: (fields.status as TempSessionCache["status"]) ?? "PENDING",
+    createdAt: Date.now(),
+  };
+  await putCache(TEMP_SESSION_KEY_PREFIX + tempId, cache);
+  await enqueue("session.create", { tempId, studentId, fields });
+  return { ok: true, id: tempId, deferred: true };
+}
+
+/**
+ * Hook: lista todos los temp items bajo un prefix. Devuelve un snapshot que
+ * se actualiza con `subscribeToChanges` (sync cuando se encola/sincroniza).
+ */
+export function useTempItems<T>(keyPrefix: string): T[] {
+  const [items, setItems] = React.useState<T[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function refresh() {
+      // Importamos dinámicamente para no cargar dexie en SSR.
+      const { listCacheKeys, getCache } = await import("./offline-queue");
+      const keys = (await listCacheKeys()).filter((k) => k.startsWith(keyPrefix));
+      const entries = await Promise.all(keys.map((k) => getCache<T>(k)));
+      if (cancelled) return;
+      setItems(entries.filter(Boolean).map((e) => (e as { data: T }).data));
+    }
+    void refresh();
+    const unsub = subscribeToChanges(() => { void refresh(); });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [keyPrefix]);
+
+  return items;
+}
+
+export { isTempId, TEMP_PREFIX };
 
 // ---------- Snapshot de datos: persiste y lee cache (Fase 3B) ----------
 

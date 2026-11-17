@@ -19,6 +19,8 @@ import Dexie, { type EntityTable, type Table } from "dexie";
 // ---------- Tipos ----------
 
 export type OperationType =
+  | "student.create"
+  | "session.create"
   | "frequency.save"
   | "duration.save"
   | "latency.save"
@@ -29,6 +31,22 @@ export type OperationType =
   | "abc.save"
   | "anecdotal.save"
   | "session.complete";
+
+/**
+ * Ops que crean entidades nuevas en el servidor. Durante el sync se procesan
+ * primero porque otras ops pueden referenciar los IDs temporales que generan.
+ */
+export const CREATE_OPS: OperationType[] = ["student.create", "session.create"];
+
+export const TEMP_PREFIX = "temp-";
+
+export function isTempId(id: string | null | undefined): boolean {
+  return typeof id === "string" && id.startsWith(TEMP_PREFIX);
+}
+
+export function genTempId(): string {
+  return `${TEMP_PREFIX}${uuid()}`;
+}
 
 export type OperationStatus = "pending" | "failed";
 
@@ -54,9 +72,18 @@ export interface CacheEntry {
   updatedAt: number;
 }
 
+export interface IdMapEntry {
+  tempId: string;
+  realId: string;
+  // "student" | "session" (y potencialmente futuros tipos).
+  entity: string;
+  createdAt: number;
+}
+
 class OfflineDb extends Dexie {
   pending!: EntityTable<PendingOperation, "id">;
   cache!: Table<CacheEntry, string>;
+  idMap!: Table<IdMapEntry, string>;
 
   constructor() {
     super("databa-offline-queue");
@@ -67,6 +94,12 @@ class OfflineDb extends Dexie {
     this.version(2).stores({
       pending: "++id, status, type, createdAt",
       cache: "key, updatedAt",
+    });
+    // Fase 3C: mapeo de IDs temporales (offline) → reales (post-sync).
+    this.version(3).stores({
+      pending: "++id, status, type, createdAt",
+      cache: "key, updatedAt",
+      idMap: "tempId, entity, createdAt",
     });
   }
 }
@@ -185,22 +218,51 @@ let processing = false;
 const BACKOFF_MS = [2_000, 5_000, 15_000, 60_000, 300_000];
 
 /**
+ * Handler de operación. Puede devolver `{realId}` si la op creó una entidad
+ * nueva en el server (ej. student.create, session.create) para que podamos
+ * remapear operaciones posteriores que referenciaban el ID temporal.
+ *
+ * El handler recibe `idMap` (temp→real) para reescribir referencias en su
+ * payload antes de llamar al server action. Ej: una medición que referencia
+ * una sesión temporal, necesita el sessionId real antes de persistirse.
+ */
+export type OperationHandler = (
+  payload: unknown,
+  meta: { idempotencyKey: string; idMap: Record<string, string> },
+) => Promise<{ realId?: string; tempId?: string; entity?: string } | void>;
+
+/**
  * Procesa la cola. Si ya está corriendo, retorna inmediatamente.
- * Llama a `handlers[op.type](op.payload, { idempotencyKey })` para cada operación.
+ * Procesa primero las ops `*.create` (orden: student.create, session.create)
+ * para que los IDs reales estén disponibles antes de que las mediciones y
+ * completions dependientes se ejecuten. Las ops dependientes consultan `idMap`.
  */
 export async function processQueue(
-  handlers: Record<OperationType, (payload: unknown, meta: { idempotencyKey: string }) => Promise<void>>,
+  handlers: Record<OperationType, OperationHandler>,
 ): Promise<{ ok: number; failed: number; retried: number }> {
   if (processing) return { ok: 0, failed: 0, retried: 0 };
   processing = true;
   try {
-    const pending = await listByStatus("pending");
+    const all = await listByStatus("pending");
+    // Ordenar: creates primero (en orden: student antes de session), luego el resto por createdAt.
+    const sorted = all.slice().sort((a, b) => {
+      const prio = (t: OperationType) => {
+        if (t === "student.create") return 0;
+        if (t === "session.create") return 1;
+        return 2;
+      };
+      const pa = prio(a.type);
+      const pb = prio(b.type);
+      if (pa !== pb) return pa - pb;
+      return a.createdAt - b.createdAt;
+    });
+
+    const mapSnapshot = await getIdMapSnapshot();
     let ok = 0, failed = 0, retried = 0;
-    for (const op of pending) {
+
+    for (const op of sorted) {
       if (!op.id) continue;
       // Respetar backoff: si el último intento fue muy reciente, saltar esta vuelta.
-      // op.attempts cuenta intentos ya hechos. Después del 1er fallo (attempts=1),
-      // esperamos BACKOFF_MS[0]=2s. Después del 2º fallo (attempts=2), BACKOFF_MS[1]=5s, etc.
       if (op.attempts > 0) {
         const idx = Math.min(op.attempts - 1, BACKOFF_MS.length - 1);
         const backoff = BACKOFF_MS[idx];
@@ -210,7 +272,15 @@ export async function processQueue(
       try {
         const handler = handlers[op.type];
         if (!handler) throw new Error(`No handler para ${op.type}`);
-        await handler(op.payload, { idempotencyKey: op.idempotencyKey });
+        const result = await handler(op.payload, {
+          idempotencyKey: op.idempotencyKey,
+          idMap: mapSnapshot,
+        });
+        // Si el handler nos devolvió un realId, persistir el mapping.
+        if (result && result.realId && result.tempId && result.entity) {
+          await putIdMap(result.tempId, result.realId, result.entity);
+          mapSnapshot[result.tempId] = result.realId;
+        }
         await remove(op.id);
         ok += 1;
       } catch (err) {
@@ -314,5 +384,48 @@ export async function purgeAllCache(): Promise<void> {
   const db = getDb();
   if (!db) return;
   await db.cache.clear();
+  await db.idMap.clear();
   notifyChange();
+}
+
+// ---------- idMap: temp → real (Fase 3C) ----------
+
+/** Persiste un mapeo temp→real. Idempotente: sobreescribe si ya existe. */
+export async function putIdMap(tempId: string, realId: string, entity: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.idMap.put({ tempId, realId, entity, createdAt: Date.now() });
+  notifyChange();
+}
+
+/** Devuelve el ID real para un temp, o null si no fue sincronizado aún. */
+export async function getRealId(tempId: string): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const entry = await db.idMap.get(tempId);
+  return entry?.realId ?? null;
+}
+
+/** Snapshot completo del mapeo (para pasar a handlers sin round-trips). */
+export async function getIdMapSnapshot(): Promise<Record<string, string>> {
+  const db = getDb();
+  if (!db) return {};
+  const all = await db.idMap.toArray();
+  const out: Record<string, string> = {};
+  for (const e of all) out[e.tempId] = e.realId;
+  return out;
+}
+
+/** Elimina mapeos viejos (útil cuando confirmamos que ya no quedan ops dependientes). */
+export async function deleteIdMap(tempId: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.idMap.delete(tempId);
+  notifyChange();
+}
+
+/** Resuelve una referencia: si el id es temp y hay mapping, devuelve el real; si no, el mismo. */
+export function resolveId(id: string, idMap: Record<string, string>): string {
+  if (!isTempId(id)) return id;
+  return idMap[id] ?? id;
 }
