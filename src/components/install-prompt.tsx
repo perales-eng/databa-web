@@ -126,8 +126,8 @@ export function InstallPrompt() {
     "safari-ios": "Safari no instala apps solo — te mostramos los pasos exactos.",
     "safari-mac": "Safari de Mac instala desde el menú — te mostramos cómo.",
     "firefox": "Firefox tiene soporte parcial para apps web. En Android se instala desde el menú; en Mac/PC es más limitado.",
-    "unsupported": "Este navegador no soporta instalar apps. Abrí databa.com en Chrome o Firefox.",
-    "unknown": "Abrí databa.com en Chrome o Safari para instalar.",
+    "unsupported": "Este navegador no soporta instalar apps. Abrí databa.org en Chrome o Firefox.",
+    "unknown": "Abrí databa.org en Chrome o Safari para instalar.",
   };
 
   return (
@@ -355,7 +355,7 @@ function ChromiumMobileInstructions() {
       />
       <div className="mt-3 rounded-xl border border-ink/10 bg-white/60 p-3 text-[12px] text-ink/65">
         Si estás en <strong className="text-ink">DuckDuckGo</strong>, ese navegador no soporta instalar apps.
-        Abrí <span className="font-mono text-ink">databa.com</span> en Chrome, Firefox, Brave o Samsung Internet.
+        Abrí <span className="font-mono text-ink">databa.org</span> en Chrome, Firefox, Brave o Samsung Internet.
       </div>
     </ol>
   );
@@ -432,7 +432,7 @@ function FirefoxInstructions() {
         </p>
         <p className="mt-2 text-[13px] leading-relaxed text-ink/70">
           Firefox desktop no soporta instalar apps web nativamente. Para una experiencia tipo app
-          nativa en computadora, abrí <span className="font-mono text-ink">databa.com</span> en
+          nativa en computadora, abrí <span className="font-mono text-ink">databa.org</span> en
           Chrome, Edge o Brave y usá su opción de instalar.
         </p>
       </div>
@@ -462,7 +462,7 @@ function GenericInstructions() {
         <li><strong className="text-ink">PC:</strong> Chrome, Edge, Brave, Firefox</li>
       </ul>
       <p className="text-[13px] text-ink/60">
-        Abrí <span className="font-mono text-ink">databa.com</span> en uno de ellos y vas a ver el botón
+        Abrí <span className="font-mono text-ink">databa.org</span> en uno de ellos y vas a ver el botón
         para instalar en el dashboard.
       </p>
     </div>
