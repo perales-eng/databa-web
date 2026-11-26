@@ -4,6 +4,7 @@ import { requireOrganization } from "@/lib/auth-helpers";
 import { Logomark } from "@/components/marketing/brand";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { SyncRefresh } from "@/components/sync-refresh";
+import { OfflinePrewarm } from "@/components/offline-prewarm";
 import { SwVersionBadge } from "@/components/sw-version-badge";
 import { LogoutButton } from "@/components/logout-button";
 import { MobileNav } from "./mobile-nav";
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col bg-cream text-ink md:flex-row">
       <SyncRefresh />
+      <OfflinePrewarm />
       {/* Top bar + drawer en mobile */}
       <MobileNav
         organizationName={organization.name}

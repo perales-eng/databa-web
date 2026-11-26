@@ -39,6 +39,18 @@ export function SessionForm({ studentId, initial }: Props) {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
+  // Defense-in-depth: si el usuario llega acá sin que el layout haya cacheado
+  // el seed de medir offline (/sessions/temp-__seed__/measure), lo intentamos
+  // de nuevo. Sin este fetch, si el usuario crea una sesión offline nunca
+  // vista antes, router.push al measure URL falla y ve "Algo salió mal".
+  React.useEffect(() => {
+    if (initial) return; // Solo en flujo de CREACIÓN.
+    void fetch("/sessions/temp-__seed__/measure", {
+      credentials: "include",
+      headers: { rsc: "1" },
+    }).catch(() => {});
+  }, [initial]);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
