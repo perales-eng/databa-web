@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -28,7 +29,9 @@ export default async function NewSessionPage({ params }: { params: Promise<{ id:
           <CardDescription>Sesión para {student.name}</CardDescription>
         </CardHeader>
         <CardContent>
-          <SessionForm studentId={student.id} />
+          <Suspense fallback={null}>
+            <SessionForm studentId={student.id} />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

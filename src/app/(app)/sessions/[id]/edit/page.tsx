@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -29,18 +30,20 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
           <CardDescription>{session.student.name}</CardDescription>
         </CardHeader>
         <CardContent>
-          <SessionForm
-            studentId={session.studentId}
-            initial={{
-              id: session.id,
-              title: session.title,
-              description: session.description,
-              sessionDate: session.sessionDate,
-              durationMin: session.durationMin,
-              sessionType: session.sessionType,
-              status: session.status,
-            }}
-          />
+          <Suspense fallback={null}>
+            <SessionForm
+              studentId={session.studentId}
+              initial={{
+                id: session.id,
+                title: session.title,
+                description: session.description,
+                sessionDate: session.sessionDate,
+                durationMin: session.durationMin,
+                sessionType: session.sessionType,
+                status: session.status,
+              }}
+            />
+          </Suspense>
         </CardContent>
       </Card>
     </div>
