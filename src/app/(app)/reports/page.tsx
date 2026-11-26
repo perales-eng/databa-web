@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireOrganization } from "@/lib/auth-helpers";
@@ -106,15 +107,17 @@ export default async function ReportsPage({
         </p>
       </div>
 
-      <Filters
-        students={data.students.map((s) => ({ id: s.id, label: s.name }))}
-        behaviorMethods={data.behaviorMethods.map((b) => ({
-          id: b.id,
-          label: `${b.behaviorName} · ${METHOD_LABELS[b.methodType] ?? b.methodType}`,
-        }))}
-        csvHref={csvHref}
-        pdfHrefBase={pdfHrefBase}
-      />
+      <Suspense fallback={null}>
+        <Filters
+          students={data.students.map((s) => ({ id: s.id, label: s.name }))}
+          behaviorMethods={data.behaviorMethods.map((b) => ({
+            id: b.id,
+            label: `${b.behaviorName} · ${METHOD_LABELS[b.methodType] ?? b.methodType}`,
+          }))}
+          csvHref={csvHref}
+          pdfHrefBase={pdfHrefBase}
+        />
+      </Suspense>
 
       <ReportTabs current={tab} params={baseParams} />
 
