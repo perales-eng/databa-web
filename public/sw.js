@@ -9,8 +9,8 @@
 //
 // Privacy: ante logout, la app manda postMessage({type: "purge-user-cache"}).
 
-const ASSETS_CACHE = "databa-assets-v5";
-const HTML_CACHE = "databa-html-v5";
+const ASSETS_CACHE = "databa-assets-v6";
+const HTML_CACHE = "databa-html-v6";
 
 // Seed de "medir sesión temp": una URL que el server renderiza como shell
 // client-only (idéntico para cualquier tempId). Cacheamos ese response una

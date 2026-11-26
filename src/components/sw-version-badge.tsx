@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-const EXPECTED = "v4";
+const EXPECTED = "v6";
 
 /**
  * Muestra la versión del SW activo. Pensado para debug / confianza — se oculta
