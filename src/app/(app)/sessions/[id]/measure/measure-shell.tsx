@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +165,7 @@ function MeasurePad({
 }
 
 export function MeasureShell({ sessionId, studentId, studentName, behaviorMethods }: Props) {
+  const router = useRouter();
   const [savedCounts, setSavedCounts] = React.useState<Record<string, number>>({});
   const [completing, setCompleting] = React.useState(false);
   const [sessionStartMs] = React.useState<number>(() => Date.now());
@@ -194,7 +196,12 @@ export function MeasureShell({ sessionId, studentId, studentName, behaviorMethod
     const target = sessionId.startsWith("temp-")
       ? `/students/${studentId}`
       : `/sessions/${sessionId}`;
-    window.location.href = target;
+    // Soft-navigation (router) en vez de window.location: una navegación dura
+    // offline pide el HTML-full (no cacheado) y cae a offline.html. router
+    // hace fetch RSC, que sí está cacheado desde que se visitó la página.
+    // replace() para que "atrás" no vuelva a la medición ya completada.
+    router.replace(target);
+    router.refresh();
   }
 
   if (behaviorMethods.length === 0) {

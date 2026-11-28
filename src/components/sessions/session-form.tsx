@@ -41,14 +41,15 @@ export function SessionForm({ studentId, initial }: Props) {
 
   // Defense-in-depth: si el usuario llega acá sin que el layout haya cacheado
   // el seed de medir offline (/sessions/temp-__seed__/measure), lo intentamos
-  // de nuevo. Sin este fetch, si el usuario crea una sesión offline nunca
-  // vista antes, router.push al measure URL falla y ve "Algo salió mal".
+  // de nuevo. Calentamos AMBAS variantes: RSC (soft-nav con router.push) y
+  // HTML-full (x-sw-prewarm, para recarga/relanzamiento de la PWA offline).
+  // Sin la variante HTML-full, una navegación full-page offline cae a
+  // offline.html y el usuario ve "sin conexión".
   React.useEffect(() => {
     if (initial) return; // Solo en flujo de CREACIÓN.
-    void fetch("/sessions/temp-__seed__/measure", {
-      credentials: "include",
-      headers: { rsc: "1" },
-    }).catch(() => {});
+    const seed = "/sessions/temp-__seed__/measure";
+    void fetch(seed, { credentials: "include", headers: { rsc: "1" } }).catch(() => {});
+    void fetch(seed, { credentials: "include", headers: { "x-sw-prewarm": "1" } }).catch(() => {});
   }, [initial]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {

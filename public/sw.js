@@ -9,8 +9,8 @@
 //
 // Privacy: ante logout, la app manda postMessage({type: "purge-user-cache"}).
 
-const ASSETS_CACHE = "databa-assets-v7";
-const HTML_CACHE = "databa-html-v7";
+const ASSETS_CACHE = "databa-assets-v8";
+const HTML_CACHE = "databa-html-v8";
 
 // Seed de "medir sesión temp": una URL que el server renderiza como shell
 // client-only (idéntico para cualquier tempId). Cacheamos ese response una
@@ -98,6 +98,38 @@ function cacheKey(url, isRsc) {
   return new Request(url.origin + url.pathname + suffix);
 }
 
+/**
+ * Al cachear una navegación, precalienta en background la variante HERMANA de
+ * la MISMA página: si acabamos de guardar el RSC (soft-nav), traemos el
+ * HTML-full; y viceversa. Así cualquier página visitada queda disponible
+ * offline para los DOS tipos de navegación:
+ *  - soft-nav (<Link>/router): pide RSC.
+ *  - navegación dura (recarga, relanzamiento de PWA, window.location): pide
+ *    HTML-full. Sin la variante hermana, la navegación dura offline caía a
+ *    offline.html aunque la página ya se hubiera visto.
+ *
+ * El SW no intercepta sus propios fetch(), así que esto no recursiona. Es
+ * best-effort: si falla (p.ej. offline), el próximo online lo reintenta.
+ * Ignoramos respuestas redirigidas: servir una response `redirected` a una
+ * navegación tira TypeError en el browser.
+ */
+async function warmSibling(cache, url, servedRsc) {
+  const siblingIsRsc = !servedRsc;
+  const siblingKey = cacheKey(url, siblingIsRsc);
+  if (await cache.match(siblingKey)) return; // ya cacheada
+  try {
+    const res = await fetch(url.origin + url.pathname, {
+      credentials: "same-origin",
+      headers: siblingIsRsc ? { rsc: "1" } : {},
+    });
+    if (res.ok && !res.redirected) {
+      await cache.put(siblingKey, res.clone()).catch(() => {});
+    }
+  } catch {
+    // best-effort
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -108,9 +140,16 @@ self.addEventListener("fetch", (event) => {
 
   const fullNav = isFullNavigation(req);
   const rsc = isRscRequest(req);
+  // El prewarm del cliente NO es una navegación real: fetch() tiene mode
+  // "cors" y destination "", así que isFullNavigation() no lo detecta y, sin
+  // esta marca, el SW ignoraría la request y nunca cachearía la variante
+  // HTML-full del seed (la clave SIN sufijo __sw_rsc). Esa es justo la que
+  // necesita una navegación full-page offline (recarga/relanzamiento de PWA).
+  // Mantenemos rsc=false para que cacheKey() guarde la variante sin sufijo.
+  const prewarmHtml = !rsc && req.headers.get("x-sw-prewarm") === "1";
 
   // Páginas protegidas (navegación o RSC): stale-while-revalidate contra HTML_CACHE.
-  if (fullNav || rsc) {
+  if (fullNav || rsc || prewarmHtml) {
     if (isHtmlBlocked(url.pathname)) {
       event.respondWith(
         fetch(req).catch(() => (fullNav ? caches.match("/offline.html") : Response.error())),
@@ -130,6 +169,9 @@ self.addEventListener("fetch", (event) => {
             // payloads usan "text/x-component" y los HTML usan "text/html".
             if (res.ok) {
               cache.put(key, res.clone()).catch(() => {});
+              // Precalentar la variante hermana para que la navegación dura
+              // offline (recarga/relanzamiento) también funcione.
+              event.waitUntil(warmSibling(cache, url, rsc));
             }
             return res;
           })
